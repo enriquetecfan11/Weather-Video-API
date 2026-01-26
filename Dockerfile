@@ -33,10 +33,14 @@ RUN apk add --no-cache \
     font-noto-emoji \
     && rm -rf /var/cache/apk/*
 
+# Crear symlink para chromium-browser (Alpine usa /usr/bin/chromium)
+RUN ln -s /usr/bin/chromium /usr/bin/chromium-browser || true
+
 # Configurar variables de entorno para Chrome
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV CHROME_BIN=/usr/bin/chromium-browser
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV CHROME_BIN=/usr/bin/chromium
+ENV REMOTION_BROWSER_EXECUTABLE=/usr/bin/chromium
 ENV DISPLAY=:99
 
 WORKDIR /app
@@ -70,7 +74,12 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Usuario no root para seguridad
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
-    chown -R nodejs:nodejs /app
+    chown -R nodejs:nodejs /app && \
+    chmod 755 /usr/bin/chromium
+
+# Chromium necesita acceso a /dev/shm para funcionar correctamente
+RUN mkdir -p /dev/shm && chmod 1777 /dev/shm
+
 USER nodejs
 
 # Comando de inicio
