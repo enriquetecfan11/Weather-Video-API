@@ -110,7 +110,21 @@ El servidor estará disponible en `http://localhost:3000` (o el puerto configura
    curl http://localhost:3000/health
    ```
 
-3. **Probar renderizado**:
+3. **Verificar sistema completo** (recomendado):
+   ```bash
+   curl http://localhost:3000/test
+   ```
+   
+   Este endpoint verifica:
+   - Estado del servidor (memoria, uptime, Node.js version)
+   - Accesibilidad de directorios (temp/, out/)
+   - Dependencias de Remotion
+   - Chrome/Chromium para renderizado
+   - Variables de entorno
+   - Sistema de cola
+   - Parser funcional
+
+4. **Probar renderizado**:
    ```bash
    curl -X POST http://localhost:3000/render \
      -H "Content-Type: application/json" \
