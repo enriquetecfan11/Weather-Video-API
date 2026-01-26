@@ -52,9 +52,22 @@
 El servidor se iniciará en `http://localhost:3000` por defecto.
 
 ### Deployment con Docker
+
+**Opción rápida (script automatizado)**:
+```bash
+./rebuild-docker.sh
+```
+
+**Opción manual**:
 1. Crear archivo `.env` desde `.env.example`
 2. Ejecutar `docker-compose up -d --build`
 3. El servicio estará disponible en el puerto **8020**
+
+**Opciones del script de regeneración**:
+- `./rebuild-docker.sh -f` - Reconstrucción sin caché
+- `./rebuild-docker.sh -c` - Limpiar volúmenes y archivos temporales
+- `./rebuild-docker.sh -l -t` - Reconstruir, mostrar logs y verificar servicio
+- `./rebuild-docker.sh -h` - Ver todas las opciones
 
 Para más detalles, consulta la [guía de instalación](./docs/setup/).
 
