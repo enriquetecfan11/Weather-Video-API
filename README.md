@@ -53,7 +53,9 @@ npm run dev
 npm run server
 ```
 
-El servidor se iniciará en `http://localhost:3000` por defecto.
+El servidor se iniciará en `http://localhost:3000` por defecto (o en el puerto configurado en `PORT`).
+
+**Nota para Docker**: Cuando uses Docker, el servicio estará disponible en el puerto **8020**.
 
 ## 🐳 Deployment con Docker
 
@@ -72,11 +74,8 @@ El servidor se iniciará en `http://localhost:3000` por defecto.
 
 2. **Build y ejecutar con Docker Compose**:
    ```bash
-   # Desarrollo
-   docker-compose up --build
-
-   # Producción
-   docker-compose -f docker-compose.prod.yml up -d --build
+   # Desarrollo/Producción
+   docker-compose up -d --build
    ```
 
 ### Build Manual
@@ -90,18 +89,23 @@ docker build -t weather-video-api .
 # Ejecutar contenedor
 docker run -d \
   --name weather-video-api \
-  -p 3000:3000 \
+  -p 8020:3000 \
   --env-file .env \
   -v $(pwd)/temp:/app/temp \
   -v $(pwd)/out:/app/out \
   weather-video-api
 ```
 
+**Nota**: El puerto 8020 del host se mapea al puerto 3000 del contenedor.
+
 ### Verificar Deployment
 
 ```bash
 # Health check
-curl http://localhost:3000/health
+curl http://localhost:8020/health
+
+# Test completo del sistema
+curl http://localhost:8020/test
 
 # Ver logs
 docker-compose logs -f api
@@ -110,14 +114,7 @@ docker-compose logs -f api
 docker-compose down
 ```
 
-### Configuración de Producción
-
-El archivo `docker-compose.prod.yml` incluye:
-- Límites de recursos (CPU y memoria)
-- Volúmenes nombrados para mejor gestión
-- Logging rotativo
-- Restart policy `always`
-- Health checks configurados
+**Nota**: El servicio está expuesto en el puerto **8020** en lugar del puerto 3000 por defecto.
 
 ### Variables de Entorno
 
@@ -207,7 +204,16 @@ Cuando `outputFormat` es `"url"`:
 
 **Con curl (stream):**
 ```bash
+# Sin Docker (puerto 3000)
 curl -X POST http://localhost:3000/render \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Hoy en Madrid: soleado, 25°C, viento suave"
+  }' \
+  --output weather-video.mp4
+
+# Con Docker (puerto 8020)
+curl -X POST http://localhost:8020/render \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Hoy en Madrid: soleado, 25°C, viento suave"
@@ -217,7 +223,18 @@ curl -X POST http://localhost:3000/render \
 
 **Con curl (URL):**
 ```bash
+# Sin Docker
 curl -X POST http://localhost:3000/render \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Barcelona: nublado, temperaturas de 10 a 15 grados, lluvia moderada 60%",
+    "options": {
+      "outputFormat": "url"
+    }
+  }'
+
+# Con Docker
+curl -X POST http://localhost:8020/render \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Barcelona: nublado, temperaturas de 10 a 15 grados, lluvia moderada 60%",
@@ -229,7 +246,9 @@ curl -X POST http://localhost:3000/render \
 
 **Con JavaScript (fetch):**
 ```javascript
-const response = await fetch('http://localhost:3000/render', {
+// Sin Docker (puerto 3000) o con Docker (puerto 8020)
+const apiUrl = process.env.API_URL || 'http://localhost:8020'; // Ajusta según tu configuración
+const response = await fetch(`${apiUrl}/render`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({

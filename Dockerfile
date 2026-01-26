@@ -10,10 +10,10 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copiar archivos de dependencias
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json ./
 
-# Instalar dependencias
-RUN npm ci --only=production=false
+# Instalar todas las dependencias (incluyendo devDependencies para build)
+RUN npm ci
 
 # Copiar código fuente
 COPY . .
