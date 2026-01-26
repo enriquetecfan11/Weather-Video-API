@@ -4,7 +4,7 @@ import "dotenv/config";
 import express from "express";
 import { renderHandler } from "./routes/render";
 import { initializeTempDir, cleanupOldFiles } from "./utils/fileManager";
-import { cleanupOldJobs } from "./services/queue";
+import { cleanupOldJobs, getQueueCapacity } from "./services/queue";
 import logger from "./utils/logger";
 
 const app = express();
@@ -116,8 +116,8 @@ app.get("/test", async (req, res) => {
     } else {
       // Intentar encontrar chromium en rutas comunes
       const commonPaths = [
-        "/usr/bin/chromium-browser",
         "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
         "/usr/bin/google-chrome",
       ];
       let found = false;
@@ -216,6 +216,15 @@ app.get("/test", async (req, res) => {
 
 // Endpoint principal de renderizado
 app.post("/render", renderHandler);
+
+// Endpoint para consultar estado de la cola
+app.get("/queue/status", (req, res) => {
+  const capacity = getQueueCapacity();
+  res.json({
+    ...capacity,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Manejo de errores
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

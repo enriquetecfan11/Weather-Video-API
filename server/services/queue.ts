@@ -148,6 +148,39 @@ export function getQueueStatus() {
 }
 
 /**
+ * Verifica si la cola puede aceptar más trabajos
+ * @param maxQueueSize Tamaño máximo de la cola (por defecto: 2 * MAX_CONCURRENT)
+ * @returns true si puede aceptar, false si está llena
+ */
+export function canAcceptJob(maxQueueSize?: number): boolean {
+  const queueLimit = maxQueueSize || MAX_CONCURRENT * 2;
+  const stats = getQueueStats();
+  
+  // No aceptar si hay demasiados trabajos en cola o procesando
+  const totalActive = stats.processing + stats.queueSize;
+  return totalActive < queueLimit;
+}
+
+/**
+ * Obtiene información sobre la capacidad de la cola
+ */
+export function getQueueCapacity() {
+  const stats = getQueueStats();
+  const queueLimit = MAX_CONCURRENT * 2;
+  const totalActive = stats.processing + stats.queueSize;
+  const available = Math.max(0, queueLimit - totalActive);
+  
+  return {
+    ...stats,
+    maxConcurrent: MAX_CONCURRENT,
+    maxQueueSize: queueLimit,
+    available,
+    isFull: !canAcceptJob(),
+    utilization: totalActive / queueLimit,
+  };
+}
+
+/**
  * Limpia jobs antiguos (más de 1 hora)
  */
 export function cleanupOldJobs(): number {

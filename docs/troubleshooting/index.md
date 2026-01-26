@@ -39,10 +39,27 @@ LOG_LEVEL=debug npm run server
 **Soluciones**:
 - Esperar a que se completen renders en curso
 - Aumentar límite en `.env`: `MAX_CONCURRENT_RENDERS=4`
-- Verificar estado de la cola en los logs
+- Verificar estado de la cola usando `GET /queue/status`
+- Implementar retry con backoff en el cliente (n8n, etc.)
 
 **Verificar estado**:
-Los logs muestran estadísticas de la cola cuando hay actividad.
+```bash
+# Consultar estado de la cola
+curl http://localhost:8020/queue/status
+```
+
+**Respuesta cuando está llena**:
+```json
+{
+  "isFull": true,
+  "available": 0,
+  "processing": 2,
+  "queueSize": 2,
+  "utilization": 1.0
+}
+```
+
+**Para n8n**: Verifica `isFull` antes de hacer peticiones y espera si es necesario.
 
 ### Parser No Extrae Datos
 

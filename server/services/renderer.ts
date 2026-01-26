@@ -14,6 +14,13 @@ import {
 const ENTRY_POINT = path.join(process.cwd(), "src", "index.tsx");
 const OUT_DIR = process.env.OUT_DIR || path.join(process.cwd(), "out");
 
+// Obtener ejecutable del navegador desde variables de entorno
+const BROWSER_EXECUTABLE = 
+  process.env.REMOTION_BROWSER_EXECUTABLE || 
+  process.env.PUPPETEER_EXECUTABLE_PATH || 
+  process.env.CHROME_BIN || 
+  undefined;
+
 /**
  * Opciones de renderizado por defecto
  */
@@ -76,10 +83,13 @@ export async function renderVideo(
     });
 
     // Compilar el bundle de Remotion
-    logger.info("Compilando bundle de Remotion...");
+    logger.info("Compilando bundle de Remotion...", {
+      browserExecutable: BROWSER_EXECUTABLE || "default",
+    });
     const bundleLocation = await bundle({
       entryPoint: ENTRY_POINT,
       webpackOverride: (config) => config,
+      ...(BROWSER_EXECUTABLE && { browserExecutable: BROWSER_EXECUTABLE }),
     });
 
     // Seleccionar la composición
@@ -88,6 +98,7 @@ export async function renderVideo(
       serveUrl: bundleLocation,
       id: "WeatherForecast",
       inputProps,
+      ...(BROWSER_EXECUTABLE && { browserExecutable: BROWSER_EXECUTABLE }),
     });
 
     logger.info("Composición seleccionada", {
@@ -119,6 +130,16 @@ export async function renderVideo(
       pixelFormat: "yuv420p",
       imageFormat: "jpeg",
       quality,
+      ...(BROWSER_EXECUTABLE && { browserExecutable: BROWSER_EXECUTABLE }),
+      chromiumOptions: {
+        // Flags necesarios para ejecutar en contenedor Docker sin display
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+        ],
+      },
       onProgress: ({ renderedFrames, encodedFrames }) => {
         if (renderedFrames % 30 === 0 || encodedFrames % 30 === 0) {
           logger.debug("Progreso de renderizado", {

@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { parseWeatherText } from "../services/parser";
 import { renderVideo } from "../services/renderer";
-import { createRenderJob, addToQueue, updateJobStatus } from "../services/queue";
+import { createRenderJob, addToQueue, updateJobStatus, canAcceptJob, getQueueCapacity } from "../services/queue";
 import { validateRenderRequest } from "../utils/validation";
 import {
   deleteTempFile,
@@ -31,6 +31,18 @@ export async function renderHandler(req: Request, res: Response): Promise<void> 
 
     const { text, options } = validation.data;
     const outputFormat = options?.outputFormat || "stream";
+
+    // Verificar si la cola puede aceptar más trabajos
+    if (!canAcceptJob()) {
+      const capacity = getQueueCapacity();
+      logger.warn("Cola llena, rechazando request", capacity);
+      res.status(429).json({
+        error: "Cola de renders llena. Intenta de nuevo más tarde.",
+        queueStatus: capacity,
+        retryAfter: 60, // Segundos
+      });
+      return;
+    }
 
     logger.info("Request de render recibido", {
       textLength: text.length,
