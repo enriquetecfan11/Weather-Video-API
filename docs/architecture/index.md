@@ -107,6 +107,116 @@ Sistema de archivos temporales:
 - **Logging** (`server/utils/logger.ts`): Sistema de logging con winston
 - **Tipos** (`server/types/api.ts`): Tipos TypeScript compartidos
 
+## Sistema de Animaciones y Componentes Remotion
+
+El sistema de renderizado utiliza una arquitectura de componentes React modular para crear vídeos con animaciones fluidas y efectos visuales profesionales.
+
+### Arquitectura de Capas Visuales
+
+```
+WeatherForecast (Composición Principal)
+├── AnimatedBackground (Capa 0: Fondo gradiente)
+├── Capas de Gradientes Radiales (Capa 0: Efectos de profundidad)
+├── AnimatedParticles (Capa 1: Partículas estilo fuegos artificiales)
+│   └── Explosion → Trail → Shrinking → Move → AnimatedDot
+├── Nubes Animadas (Capa 1: Efectos atmosféricos)
+└── Contenido Principal (Capa 10: Información meteorológica)
+    ├── Bloque 1: Temperatura + Ciudad (0-4s)
+    ├── Bloque 2: Condición, Sensación, Viento (3.5-9s)
+    ├── Bloque 3: Fenómenos (9-13s)
+    └── Bloque 4: Descripción completa (12-18s)
+```
+
+### Componentes de Animación
+
+El sistema incluye componentes reutilizables de animación ubicados en `src/components/animations/`:
+
+- **FadeIn**: Fade in con física spring configurable
+- **ScaleIn**: Animación de escala con fade opcional
+- **SlideIn**: Deslizamiento en 4 direcciones (up, down, left, right)
+- **WordReveal**: Revelado palabra por palabra con movimiento sutil
+
+**Configuraciones Spring**:
+- `DRAMATIC`: Para entradas impactantes (temperatura principal)
+- `SMOOTH`: Para transiciones suaves (tarjetas, contenido secundario)
+- `SUBTLE`: Para efectos sutiles (texto secundario, detalles)
+
+### Sistema de Partículas
+
+Efectos visuales de fondo que crean ambiente dinámico:
+
+1. **AnimatedParticles**: Orquesta el sistema completo
+2. **Explosion**: Multiplica partículas en 10 direcciones radiales
+3. **Trail**: Crea estelas múltiples con delays escalonados
+4. **Shrinking**: Reduce escala con el tiempo
+5. **Move**: Aplica movimiento vertical con spring physics
+6. **AnimatedDot**: Punto visual base
+
+**Características**:
+- Opacidad reducida (0.6) para no interferir con contenido
+- `pointerEvents: none` para no bloquear interacciones
+- Z-index: 1 (sobre fondo, debajo de contenido)
+
+### Estructura Narrativa Temporal
+
+La composición `WeatherForecast` sigue una estructura narrativa en 4 bloques:
+
+1. **Bloque 1 (0-4s)**: Impacto inicial
+   - Temperatura con animación DRAMATIC
+   - Ciudad con slide up y fade
+   - Fade out al final del bloque
+
+2. **Bloque 2 (3.5-9s)**: Contexto humano
+   - Tarjetas con información (condición, sensación, viento)
+   - Animaciones escalonadas (stagger de 0.15s)
+   - Scale + Slide combinados
+
+3. **Bloque 3 (9-13s)**: Fenómenos (condicional)
+   - Tarjeta de precipitaciones si existe
+   - Scale + Slide con fade
+
+4. **Bloque 4 (12-18s)**: Descripción completa (condicional)
+   - Texto completo centrado
+   - WordReveal palabra por palabra
+   - Fade in suave
+
+5. **Outro (18-22s)**: Fade out final
+   - Transición suave a negro
+
+### Layout Adaptativo
+
+El sistema incluye un hook `useAdaptiveLayout` que ajusta dinámicamente:
+
+- Tamaños de fuente según longitud del contenido
+- Espaciado y padding
+- Posicionamiento vertical (offset top)
+- Truncamiento inteligente de texto largo
+
+**Implementado en**: `src/hooks/useAdaptiveLayout.ts`
+
+### Utilidades de Animación
+
+**Funciones de Easing** (`src/utils/animations.ts`):
+- `clamp`: Extrapolación que mantiene valores en rango
+- `easeOutCubic`: Easing cúbico de salida
+- `easeInOutCubic`: Easing cúbico de entrada/salida
+- `easeOutExpo`: Easing exponencial de salida
+
+**Constantes de Timing** (`src/utils/constants.ts`):
+- `SPRING_CONFIGS`: Configuraciones predefinidas de spring
+- `TIMING`: Estructura temporal de bloques narrativos
+- `MOBILE_DESIGN`: Constantes de diseño para formato vertical (1080x1920)
+
+### Integración con Remotion
+
+- **Composición**: `WeatherForecast` definida en `src/Root.tsx`
+- **Props**: Compatible con `WeatherForecastProps` (datos parseados del texto)
+- **Renderizado**: Programático vía `@remotion/renderer`
+- **Resolución**: Configurable (default: 1080x1920 para móvil vertical)
+- **FPS**: Configurable (default: 30)
+
+Ver [Componentes](../components/) para documentación detallada de cada componente.
+
 ## Flujo de Datos Detallado
 
 1. **Request recibido**: Cliente envía `POST /render` con texto

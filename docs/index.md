@@ -6,6 +6,7 @@ Bienvenido a la documentación del proyecto de generación de vídeos meteoroló
 
 - [Arquitectura](./architecture/) - Documentación arquitectónica del sistema
 - [Features](./features/) - Especificaciones de features implementadas
+- [Componentes](./components/) - Documentación de componentes Remotion y animaciones
 - [Setup](./setup/) - Guías de instalación y configuración
 - [Referencia](./reference/) - Referencias técnicas y APIs
 - [Troubleshooting](./troubleshooting/) - Solución de problemas comunes
