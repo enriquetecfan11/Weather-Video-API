@@ -13,6 +13,7 @@
 
 - [Características](#-características)
 - [Instalación](#-instalación)
+- [Deployment con Docker](#-deployment-con-docker)
 - [Uso de la API](#-uso-de-la-api)
 - [Tech Stack](#-tech-stack)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
@@ -53,6 +54,100 @@ npm run server
 ```
 
 El servidor se iniciará en `http://localhost:3000` por defecto.
+
+## 🐳 Deployment con Docker
+
+### Requisitos Previos
+
+- Docker >= 20.10
+- Docker Compose >= 2.0 (opcional, pero recomendado)
+
+### Configuración Rápida
+
+1. **Crear archivo `.env`** (si no existe):
+   ```bash
+   cp .env.example .env
+   # Editar .env con tus configuraciones
+   ```
+
+2. **Build y ejecutar con Docker Compose**:
+   ```bash
+   # Desarrollo
+   docker-compose up --build
+
+   # Producción
+   docker-compose -f docker-compose.prod.yml up -d --build
+   ```
+
+### Build Manual
+
+Si prefieres construir y ejecutar manualmente:
+
+```bash
+# Construir imagen
+docker build -t weather-video-api .
+
+# Ejecutar contenedor
+docker run -d \
+  --name weather-video-api \
+  -p 3000:3000 \
+  --env-file .env \
+  -v $(pwd)/temp:/app/temp \
+  -v $(pwd)/out:/app/out \
+  weather-video-api
+```
+
+### Verificar Deployment
+
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Ver logs
+docker-compose logs -f api
+
+# Detener servicios
+docker-compose down
+```
+
+### Configuración de Producción
+
+El archivo `docker-compose.prod.yml` incluye:
+- Límites de recursos (CPU y memoria)
+- Volúmenes nombrados para mejor gestión
+- Logging rotativo
+- Restart policy `always`
+- Health checks configurados
+
+### Variables de Entorno
+
+Asegúrate de configurar las siguientes variables en tu `.env`:
+
+```env
+PORT=3000
+MAX_CONCURRENT_RENDERS=2
+RENDER_TIMEOUT=300000
+TEMP_DIR=./temp
+OUT_DIR=./out
+LOG_LEVEL=info
+GROQ_API_KEY=your_groq_api_key_here  # Opcional
+```
+
+### Volúmenes
+
+- `temp/`: Archivos temporales (se limpian automáticamente después de 1 hora)
+- `out/`: Vídeos renderizados (opcional, para persistir renders)
+
+### Troubleshooting
+
+**Problema**: Chrome/Chromium no funciona en el contenedor
+- **Solución**: El Dockerfile ya incluye Chromium. Si persiste, verifica los logs del contenedor.
+
+**Problema**: Error de permisos en volúmenes
+- **Solución**: Asegúrate de que los directorios `temp/` y `out/` existan y tengan permisos correctos.
+
+**Problema**: El contenedor se reinicia constantemente
+- **Solución**: Revisa los logs con `docker-compose logs api` y verifica las variables de entorno.
 
 ## 📡 Uso de la API
 
@@ -156,7 +251,7 @@ const url = URL.createObjectURL(blob);
 
 ### Health Check: `GET /health`
 
-Verifica el estado del servidor.
+Verifica el estado básico del servidor.
 
 ```bash
 curl http://localhost:3000/health
@@ -170,6 +265,108 @@ Response:
   "uptime": 3600
 }
 ```
+
+### Test Endpoint: `GET /test`
+
+Verifica el estado completo del sistema, incluyendo dependencias, directorios, Chrome/Chromium, cola y parser.
+
+```bash
+curl http://localhost:3000/test
+```
+
+Response:
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-01-23T12:00:00.000Z",
+  "checks": {
+    "server": {
+      "status": "ok",
+      "details": {
+        "uptime": 3600,
+        "nodeVersion": "v18.17.0",
+        "platform": "linux",
+        "memory": {
+          "used": 150,
+          "total": 200,
+          "unit": "MB"
+        }
+      }
+    },
+    "directories": {
+      "status": "ok",
+      "message": "Directorios accesibles",
+      "details": {
+        "tempDir": "./temp",
+        "outDir": "./out"
+      }
+    },
+    "remotion": {
+      "status": "ok",
+      "message": "Dependencias de Remotion disponibles",
+      "details": {
+        "bundler": "ok",
+        "renderer": "ok"
+      }
+    },
+    "chrome": {
+      "status": "ok",
+      "message": "Chrome/Chromium encontrado",
+      "details": {
+        "path": "/usr/bin/chromium-browser"
+      }
+    },
+    "environment": {
+      "status": "ok",
+      "message": "Variables de entorno verificadas",
+      "details": {
+        "PORT": "3000",
+        "MAX_CONCURRENT_RENDERS": "2",
+        "RENDER_TIMEOUT": "300000",
+        "TEMP_DIR": "./temp",
+        "OUT_DIR": "./out",
+        "GROQ_API_KEY": "configurada"
+      }
+    },
+    "queue": {
+      "status": "ok",
+      "message": "Sistema de cola operativo",
+      "details": {
+        "pending": 0,
+        "processing": 1,
+        "completed": 5,
+        "failed": 0,
+        "queueSize": 0,
+        "maxConcurrent": 2,
+        "timeout": 300000
+      }
+    },
+    "parser": {
+      "status": "ok",
+      "message": "Parser funcional",
+      "details": {
+        "testText": "Madrid: soleado, 25°C"
+      }
+    }
+  },
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "warnings": 0,
+    "errors": 0
+  }
+}
+```
+
+**Códigos de respuesta:**
+- `200 OK`: Todos los checks pasaron correctamente
+- `503 Service Unavailable`: Uno o más checks fallaron
+
+Este endpoint es útil para:
+- Verificar que el sistema está listo para renderizar videos
+- Diagnosticar problemas de configuración
+- Verificar dependencias antes de desplegar
+- Monitoreo de salud del sistema
 
 ## 🛠️ Tech Stack
 

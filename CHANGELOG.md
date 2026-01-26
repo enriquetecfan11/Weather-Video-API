@@ -8,6 +8,21 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Añadido
+- **Endpoint `/test` para verificación completa del sistema**
+  - Verificación de estado del servidor (uptime, memoria, Node.js version)
+  - Verificación de accesibilidad de directorios (temp/, out/)
+  - Verificación de dependencias de Remotion
+  - Verificación de Chrome/Chromium para renderizado
+  - Verificación de variables de entorno críticas
+  - Verificación del sistema de cola
+  - Verificación del parser con texto de prueba
+  - Respuesta detallada con estado de cada componente y resumen general
+- **Configuración Docker completa**
+  - Dockerfile multi-stage optimizado con Node.js 18 y Chromium
+  - docker-compose.yml para desarrollo
+  - docker-compose.prod.yml para producción con límites de recursos
+  - .dockerignore para optimizar builds
+  - Documentación de deployment Docker en README
 - **Integración de Groq para parser mejorado**
   - Parser principal usando Groq API con modelo qwen/qwen3-32b
   - Parser determinista mantenido como fallback automático
