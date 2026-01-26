@@ -167,6 +167,14 @@ npm install @remotion/cli @remotion/bundler @remotion/renderer remotion
 - Docker >= 20.10
 - Docker Compose >= 2.0 (o docker-compose >= 1.29)
 
+### Nota Importante sobre la Imagen Base
+
+El proyecto usa **Debian (node:22-bookworm-slim)** como imagen base, **NO Alpine Linux**.
+
+**Razón**: Chrome Headless Shell de Remotion requiere glibc (no musl de Alpine) y dependencias específicas que solo están disponibles en distribuciones basadas en Debian/Ubuntu.
+
+Si necesitas usar Alpine por otras razones, considera usar Chrome for Testing en lugar de Chrome Headless Shell, pero esto requiere configuración adicional.
+
 ### Uso Rápido con Script
 
 El proyecto incluye un script automatizado para regenerar contenedores:
@@ -278,11 +286,19 @@ docker-compose config
 ```
 
 **Problemas con permisos**:
-```bash
-# Asegurar que los directorios existen y tienen permisos
-mkdir -p temp out
-chmod 755 temp out
-```
+- El `entrypoint.sh` ajusta permisos automáticamente al iniciar
+- Si persisten problemas:
+  ```bash
+  # Asegurar que los directorios existen
+  mkdir -p temp out
+  
+  # En Linux/Mac, ajustar permisos manualmente si es necesario
+  chmod 755 temp out
+  
+  # Verificar permisos dentro del contenedor
+  docker exec -it weather-video-api ls -la /app/temp
+  ```
+- En Windows: Los permisos se gestionan automáticamente
 
 **Limpiar completamente**:
 ```bash

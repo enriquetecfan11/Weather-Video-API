@@ -53,6 +53,8 @@ El servidor se iniciará en `http://localhost:3000` por defecto.
 
 ### Deployment con Docker
 
+**Nota**: El proyecto usa **Debian (node:22-bookworm-slim)** como imagen base. Chrome Headless Shell se descarga automáticamente durante el build - no requiere configuración manual.
+
 **Opción rápida (script automatizado)**:
 ```bash
 ./rebuild-docker.sh
@@ -68,6 +70,11 @@ El servidor se iniciará en `http://localhost:3000` por defecto.
 - `./rebuild-docker.sh -c` - Limpiar volúmenes y archivos temporales
 - `./rebuild-docker.sh -l -t` - Reconstruir, mostrar logs y verificar servicio
 - `./rebuild-docker.sh -h` - Ver todas las opciones
+
+**Notas importantes**:
+- El entrypoint ajusta automáticamente permisos de directorios montados (`temp/`, `out/`)
+- Chrome Headless Shell se descarga automáticamente (~109 MB) durante el build
+- El primer build puede tardar más tiempo debido a la descarga de dependencias
 
 Para más detalles, consulta la [guía de instalación](./docs/setup/).
 

@@ -21,10 +21,12 @@ curl http://localhost:8020/test
 **Posibles causas y soluciones**:
 
 1. **Chrome/Chromium no disponible o sin permisos**:
-   - Verificar que Chrome/Chromium esté instalado
-   - En Docker: Verificar que el Dockerfile incluya Chromium
-   - Verificar permisos del ejecutable
-   - Ver logs: buscar errores "spawn", "ENOENT", "EACCES"
+   - **En Docker**: El sistema usa Chrome Headless Shell automáticamente
+     - Si ves "Old Headless mode has been removed": actualizar Dockerfile a Debian
+     - Si ves "Missing X server": verificar que no estás usando Alpine Linux
+     - Si ves "ENOENT" con chrome-headless-shell: reconstruir contenedor sin caché
+   - **En local**: Remotion descargará Chrome Headless Shell automáticamente
+   - Ver logs: buscar errores "spawn", "ENOENT", "EACCES", "Old Headless mode"
 
 2. **Remotion no instalado correctamente**:
    ```bash
@@ -182,12 +184,21 @@ curl http://localhost:8020/test | jq '.summary, .checks | to_entries[] | select(
    - **Ejemplo**: Si el render tarda 6 minutos, aumenta a `RENDER_TIMEOUT=360000` (6 minutos)
 
 2. **Problema con navegador/Chrome**:
-   - **Síntoma**: El error incluye "browser", "Chrome", "Chromium", "spawn", o "EACCES"
-   - **Solución**:
-     - Verificar que Chrome/Chromium esté instalado y accesible
-     - En Docker: Verificar que el Dockerfile incluya Chromium
-     - Verificar permisos del ejecutable
-     - Configurar `REMOTION_BROWSER_EXECUTABLE` o `CHROME_BIN` en `.env` si es necesario
+   - **Síntoma**: El error incluye "browser", "Chrome", "Chromium", "spawn", "EACCES", "Old Headless mode", "Missing X server", o "ENOENT"
+   - **Soluciones**:
+     - **En Docker**: El sistema usa Chrome Headless Shell automáticamente (no requiere configuración)
+     - Si el error es "Old Headless mode has been removed":
+       - Asegúrate de usar la versión más reciente del Dockerfile (Debian-based)
+       - Reconstruir el contenedor: `docker compose build --no-cache`
+     - Si el error es "Missing X server" o "Failed to connect to the bus":
+       - Verificar que estás usando `node:22-bookworm-slim` (Debian) y no Alpine
+       - Chrome Headless Shell no requiere X11, este error indica configuración incorrecta
+     - Si el error es "ENOENT" o "spawn" con chrome-headless-shell:
+       - Verificar que el build descargó Chrome Headless Shell correctamente
+       - Reconstruir sin caché: `docker compose build --no-cache`
+       - Verificar logs del build para errores durante `npx remotion browser ensure`
+     - **En local (sin Docker)**: Remotion descargará Chrome Headless Shell automáticamente
+     - No es necesario configurar `REMOTION_BROWSER_EXECUTABLE` - Remotion lo gestiona automáticamente
 
 3. **Espacio en disco insuficiente**:
    - **Síntoma**: El error incluye "Espacio en disco"
@@ -214,6 +225,42 @@ curl http://localhost:8020/test | jq '.summary, .checks | to_entries[] | select(
 - La limpieza automática se ejecuta cada hora
 - Limpiar manualmente: `rm -rf temp/*`
 - Verificar que el proceso de limpieza esté funcionando (ver logs)
+
+### Error "Permission denied" al Escribir Archivos en Docker
+
+**Síntoma**: Error "Permission denied" al intentar escribir en `/app/temp/` o `/app/out/`
+
+**Causa**: Los volúmenes montados desde el host pueden tener permisos incorrectos
+
+**Soluciones**:
+- El `entrypoint.sh` ajusta permisos automáticamente al iniciar el contenedor
+- Si el problema persiste:
+  ```bash
+  # Verificar que el entrypoint se ejecuta
+  docker compose logs api | grep entrypoint
+  
+  # Verificar permisos en el host
+  ls -la temp/ out/
+  
+  # Ajustar permisos manualmente en el host (si es necesario)
+  chmod 755 temp out
+  ```
+- En Windows: Los permisos se gestionan automáticamente, pero verifica que los directorios existan
+
+### Error "FFmpeg quit with code 243 - Permission denied"
+
+**Síntoma**: FFmpeg no puede escribir el archivo de salida
+
+**Causa**: Permisos incorrectos en directorio `temp/` o `out/`
+
+**Solución**:
+- El entrypoint debería resolver esto automáticamente
+- Si persiste, verificar que los directorios existen y tienen permisos:
+  ```bash
+  # En el contenedor
+  docker exec -it weather-video-api ls -la /app/temp
+  docker exec -it weather-video-api ls -la /app/out
+  ```
 
 ## Obtener Ayuda
 
