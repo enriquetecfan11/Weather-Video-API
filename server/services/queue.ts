@@ -137,6 +137,17 @@ export function getQueueStats(): {
 }
 
 /**
+ * Obtiene el estado completo de la cola (alias de getQueueStats para compatibilidad)
+ */
+export function getQueueStatus() {
+  return {
+    ...getQueueStats(),
+    maxConcurrent: MAX_CONCURRENT,
+    timeout: RENDER_TIMEOUT,
+  };
+}
+
+/**
  * Limpia jobs antiguos (más de 1 hora)
  */
 export function cleanupOldJobs(): number {
