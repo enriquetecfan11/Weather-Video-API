@@ -25,13 +25,34 @@ const CHROMIUM_OPTIONS = {
   // Forzar el nuevo modo headless en Chrome 112+
   // headless=false evita que Remotion añada el flag antiguo
   headless: false,
-  // Flags necesarios para ejecutar en contenedor Docker sin display
+  // Flags necesarios para ejecutar en contenedor Docker sin display ni X11
   args: [
     "--headless=new",
     "--no-sandbox",
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
     "--disable-gpu",
+    "--disable-software-rasterizer",
+    "--disable-extensions",
+    "--disable-background-networking",
+    "--disable-background-timer-throttling",
+    "--disable-renderer-backgrounding",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-breakpad",
+    "--disable-component-extensions-with-background-pages",
+    "--disable-features=TranslateUI",
+    "--disable-ipc-flooding-protection",
+    "--disable-sync",
+    "--metrics-recording-only",
+    "--mute-audio",
+    "--no-first-run",
+    "--safebrowsing-disable-auto-update",
+    "--enable-automation",
+    "--password-store=basic",
+    "--use-mock-keychain",
+    // Evitar X11 y D-Bus
+    "--disable-features=VizDisplayCompositor",
+    "--use-gl=swiftshader",
   ],
 };
 
@@ -90,25 +111,38 @@ export async function renderVideo(
       fullProps: JSON.stringify(inputProps, null, 2),
     });
 
+    // Usar Chrome Headless Shell por defecto (no requiere X11)
+    // Si browserExecutable está configurado pero queremos usar headless-shell,
+    // no lo pasamos para que Remotion use su propio Chrome
+    const useHeadlessShell = true; // Siempre usar headless-shell en Docker
+    
     // Compilar el bundle de Remotion
     logger.info("Compilando bundle de Remotion...", {
-      browserExecutable: BROWSER_EXECUTABLE || "default",
+      browserExecutable: useHeadlessShell ? "headless-shell (Remotion)" : (BROWSER_EXECUTABLE || "default"),
     });
-    const bundleLocation = await bundle({
+    const bundleOptions: any = {
       entryPoint: ENTRY_POINT,
       webpackOverride: (config) => config,
-      ...(BROWSER_EXECUTABLE && { browserExecutable: BROWSER_EXECUTABLE }),
-    });
+    };
+    // Solo pasar browserExecutable si NO estamos usando headless-shell
+    if (!useHeadlessShell && BROWSER_EXECUTABLE) {
+      bundleOptions.browserExecutable = BROWSER_EXECUTABLE;
+    }
+    const bundleLocation = await bundle(bundleOptions);
 
     // Seleccionar la composición
     logger.info("Seleccionando composición con inputProps...");
-    const composition = await selectComposition({
+    const selectOptions: any = {
       serveUrl: bundleLocation,
       id: "WeatherForecast",
       inputProps,
-      ...(BROWSER_EXECUTABLE && { browserExecutable: BROWSER_EXECUTABLE }),
       chromiumOptions: CHROMIUM_OPTIONS,
-    });
+    };
+    // Solo pasar browserExecutable si NO estamos usando headless-shell
+    if (!useHeadlessShell && BROWSER_EXECUTABLE) {
+      selectOptions.browserExecutable = BROWSER_EXECUTABLE;
+    }
+    const composition = await selectComposition(selectOptions);
 
     logger.info("Composición seleccionada", {
       durationInFrames: composition.durationInFrames,
@@ -139,7 +173,7 @@ export async function renderVideo(
 
     // Renderizar el vídeo
     logger.info("Renderizando vídeo con inputProps...");
-    await renderMedia({
+    const renderOptions: any = {
       composition: renderComposition,
       serveUrl: bundleLocation,
       codec: "h264",
@@ -148,8 +182,17 @@ export async function renderVideo(
       pixelFormat: "yuv420p",
       imageFormat: "jpeg",
       jpegQuality: quality,
-      ...(BROWSER_EXECUTABLE && { browserExecutable: BROWSER_EXECUTABLE }),
+      chromeMode: "headless-shell",
       chromiumOptions: CHROMIUM_OPTIONS,
+    };
+    
+    // Solo pasar browserExecutable si NO estamos usando headless-shell
+    if (!useHeadlessShell && BROWSER_EXECUTABLE) {
+      renderOptions.browserExecutable = BROWSER_EXECUTABLE;
+    }
+    
+    await renderMedia({
+      ...renderOptions,
       onProgress: ({ renderedFrames, encodedFrames }) => {
         if (renderedFrames % 30 === 0 || encodedFrames % 30 === 0) {
           logger.debug("Progreso de renderizado", {
