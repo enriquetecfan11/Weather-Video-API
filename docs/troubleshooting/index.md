@@ -158,14 +158,53 @@ curl http://localhost:8020/queue/status
 - Verificar logs para errores durante el renderizado
 - Probar con un texto más simple primero
 
-### Timeout en Renderizado
+### Error 503 - Service Unavailable
 
-**Síntoma**: Error 503 o timeout
+**Síntoma**: Error 503 al renderizar
 
-**Soluciones**:
-- Aumentar `RENDER_TIMEOUT` en `.env` (valor en milisegundos)
-- Reducir calidad o resolución en las opciones
-- Verificar recursos del sistema (CPU, memoria)
+**Diagnóstico**:
+```bash
+# Verificar diagnóstico completo
+curl http://localhost:8020/diagnostics | jq
+
+# Verificar estado del sistema
+curl http://localhost:8020/test | jq '.summary, .checks | to_entries[] | select(.value.status != "ok")'
+```
+
+**Causas comunes y soluciones**:
+
+1. **Timeout en renderizado**:
+   - **Síntoma**: El error incluye "Timeout" o el tiempo de procesamiento es cercano a `RENDER_TIMEOUT`
+   - **Solución**: 
+     - Aumentar `RENDER_TIMEOUT` en `.env` (valor en milisegundos, default: 300000 = 5 minutos)
+     - Reducir calidad o resolución en las opciones de render
+     - Verificar recursos del sistema (CPU, memoria)
+   - **Ejemplo**: Si el render tarda 6 minutos, aumenta a `RENDER_TIMEOUT=360000` (6 minutos)
+
+2. **Problema con navegador/Chrome**:
+   - **Síntoma**: El error incluye "browser", "Chrome", "Chromium", "spawn", o "EACCES"
+   - **Solución**:
+     - Verificar que Chrome/Chromium esté instalado y accesible
+     - En Docker: Verificar que el Dockerfile incluya Chromium
+     - Verificar permisos del ejecutable
+     - Configurar `REMOTION_BROWSER_EXECUTABLE` o `CHROME_BIN` en `.env` si es necesario
+
+3. **Espacio en disco insuficiente**:
+   - **Síntoma**: El error incluye "Espacio en disco"
+   - **Solución**:
+     - Limpiar archivos temporales: `rm -rf temp/*`
+     - Verificar espacio disponible en disco
+     - La limpieza automática se ejecuta cada hora, pero puedes limpiar manualmente
+
+4. **Sistema no listo** (endpoint `/test` falla):
+   - **Síntoma**: El endpoint `/test` devuelve 503
+   - **Solución**: Revisar qué check específico está fallando en `/test`
+
+**Para n8n y automatización**:
+- Siempre verifica `/queue/status` antes de hacer renders
+- Implementa retry con backoff exponencial
+- Verifica `/diagnostics` para obtener recomendaciones
+- Los errores 503 incluyen `errorCode` y `suggestion` en la respuesta JSON
 
 ### Archivos Temporales Se Acumulan
 

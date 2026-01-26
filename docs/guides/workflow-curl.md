@@ -175,6 +175,18 @@ curl -s -X POST $API_URL/render \
 # Consultar diagnóstico completo
 curl -s $API_URL/diagnostics | jq
 
+# Verificar estado del sistema
+curl -s $API_URL/test | jq '.summary, .checks | to_entries[] | select(.value.status != "ok")'
+
+# Si recibes 503, verifica:
+# 1. Timeout: El render tardó más de 5 minutos (300000ms)
+#    - Solución: Aumenta RENDER_TIMEOUT en .env
+#    - O reduce calidad/resolución del vídeo
+# 2. Problema con navegador: Chrome/Chromium no está disponible
+#    - Solución: Verifica que Chrome está instalado y configurado
+# 3. Espacio en disco: No hay espacio suficiente
+#    - Solución: Limpia archivos temporales en temp/
+
 # Revisar logs del servidor
 # (En Docker: docker-compose logs -f api)
 ```

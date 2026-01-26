@@ -160,3 +160,136 @@ Asegúrate de que todas las dependencias de Remotion estén instaladas:
 ```bash
 npm install @remotion/cli @remotion/bundler @remotion/renderer remotion
 ```
+
+## Deployment con Docker
+
+### Requisitos
+- Docker >= 20.10
+- Docker Compose >= 2.0 (o docker-compose >= 1.29)
+
+### Uso Rápido con Script
+
+El proyecto incluye un script automatizado para regenerar contenedores:
+
+```bash
+# Reconstrucción básica
+./rebuild-docker.sh
+
+# Reconstrucción sin caché (forzar rebuild completo)
+./rebuild-docker.sh -f
+
+# Limpiar volúmenes y archivos temporales antes de reconstruir
+./rebuild-docker.sh -c
+
+# Reconstruir, mostrar logs y verificar servicio
+./rebuild-docker.sh -l -t
+
+# Ver todas las opciones
+./rebuild-docker.sh -h
+```
+
+**Opciones del script**:
+- `-h, --help`: Mostrar ayuda
+- `-f, --force`: Forzar reconstrucción sin caché
+- `-c, --clean`: Limpiar volúmenes y archivos temporales
+- `-l, --logs`: Mostrar logs después de iniciar
+- `-t, --test`: Verificar que el servicio funciona después de iniciar
+- `-s, --stop`: Solo detener y eliminar contenedores (no reconstruir)
+- `-v, --verbose`: Mostrar más información durante el proceso
+
+### Uso Manual
+
+1. **Crear archivo `.env`** (si no existe):
+   ```bash
+   cp .env.example .env
+   # Editar .env según necesidad
+   ```
+
+2. **Construir e iniciar contenedores**:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+3. **Verificar que está funcionando**:
+   ```bash
+   # Health check
+   curl http://localhost:8020/health
+   
+   # Estado completo del sistema
+   curl http://localhost:8020/test
+   ```
+
+4. **Ver logs**:
+   ```bash
+   docker-compose logs -f
+   ```
+
+5. **Detener contenedores**:
+   ```bash
+   docker-compose down
+   ```
+
+### Comandos Útiles
+
+```bash
+# Ver estado de contenedores
+docker-compose ps
+
+# Ver logs en tiempo real
+docker-compose logs -f api
+
+# Reiniciar servicio
+docker-compose restart
+
+# Reconstruir sin caché
+docker-compose build --no-cache
+docker-compose up -d
+
+# Limpiar todo (contenedores, volúmenes, imágenes)
+docker-compose down -v
+docker rmi $(docker images | grep weather-video | awk '{print $3}')
+
+# Acceder al contenedor
+docker exec -it weather-video-api sh
+```
+
+### Puertos
+
+- **8020**: Puerto expuesto del contenedor (mapea al puerto 3000 interno)
+- **3000**: Puerto interno del contenedor (no accesible desde fuera)
+
+### Volúmenes
+
+Los siguientes directorios se montan como volúmenes:
+- `./temp` → `/app/temp` (archivos temporales)
+- `./out` → `/app/out` (vídeos renderizados)
+
+Esto permite acceder a los archivos generados desde el host.
+
+### Troubleshooting Docker
+
+**El contenedor no inicia**:
+```bash
+# Ver logs detallados
+docker-compose logs api
+
+# Verificar configuración
+docker-compose config
+```
+
+**Problemas con permisos**:
+```bash
+# Asegurar que los directorios existen y tienen permisos
+mkdir -p temp out
+chmod 755 temp out
+```
+
+**Limpiar completamente**:
+```bash
+# Usar el script con opción -c
+./rebuild-docker.sh -c
+
+# O manualmente
+docker-compose down -v
+docker system prune -a
+```
