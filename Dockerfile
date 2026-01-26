@@ -40,6 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcups2 \
     ca-certificates \
     fonts-liberation \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # No configurar REMOTION_BROWSER_EXECUTABLE para que use Chrome Headless Shell por defecto
@@ -53,6 +54,10 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/server ./server
+
+# Copiar y configurar entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Pre-descargar Chrome Headless Shell y asegurar permisos
 RUN npx remotion browser ensure && \
@@ -88,7 +93,11 @@ RUN mkdir -p /dev/shm && chmod 1777 /dev/shm
 # Asegurar que nodejs tenga permisos en /app (incluyendo node_modules/.remotion)
 RUN chown -R nodejs:nodejs /app
 
-USER nodejs
+# NO cambiar a USER nodejs aquí - el entrypoint se ejecutará como root
+# para poder ajustar permisos de volúmenes montados, y luego cambiará a nodejs
+
+# Usar entrypoint para ajustar permisos de volúmenes montados
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Comando de inicio
 CMD ["npm", "run", "server"]
