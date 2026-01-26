@@ -21,6 +21,20 @@ const BROWSER_EXECUTABLE =
   process.env.CHROME_BIN || 
   undefined;
 
+const CHROMIUM_OPTIONS = {
+  // Forzar el nuevo modo headless en Chrome 112+
+  // headless=false evita que Remotion añada el flag antiguo
+  headless: false,
+  // Flags necesarios para ejecutar en contenedor Docker sin display
+  args: [
+    "--headless=new",
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+  ],
+};
+
 /**
  * Opciones de renderizado por defecto
  */
@@ -48,12 +62,6 @@ export async function renderVideo(
   if (!hasSpace) {
     throw new Error("Espacio en disco insuficiente para renderizar");
   }
-
-  // Configuración de renderizado
-  const fps = options.fps || 30;
-  const width = options.width || 1080;
-  const height = options.height || 1920;
-  const quality = options.quality || 80;
 
   // Generar ruta de salida
   const outputPath = generateTempFilePath();
@@ -99,6 +107,7 @@ export async function renderVideo(
       id: "WeatherForecast",
       inputProps,
       ...(BROWSER_EXECUTABLE && { browserExecutable: BROWSER_EXECUTABLE }),
+      chromiumOptions: CHROMIUM_OPTIONS,
     });
 
     logger.info("Composición seleccionada", {
@@ -106,6 +115,18 @@ export async function renderVideo(
       fps: composition.fps,
       compositionId: composition.id,
     });
+
+    // Configuración de renderizado (permite override de FPS y resolución)
+    const fps = options.fps ?? composition.fps;
+    const width = options.width ?? composition.width;
+    const height = options.height ?? composition.height;
+    const quality = options.quality ?? 80;
+    const renderComposition = {
+      ...composition,
+      fps,
+      width,
+      height,
+    };
 
     // Verificar que la composición tenga los props correctos
     if (composition.props) {
@@ -119,27 +140,16 @@ export async function renderVideo(
     // Renderizar el vídeo
     logger.info("Renderizando vídeo con inputProps...");
     await renderMedia({
-      composition,
+      composition: renderComposition,
       serveUrl: bundleLocation,
       codec: "h264",
       outputLocation: outputPath,
       inputProps,
-      fps,
-      width,
-      height,
       pixelFormat: "yuv420p",
       imageFormat: "jpeg",
-      quality,
+      jpegQuality: quality,
       ...(BROWSER_EXECUTABLE && { browserExecutable: BROWSER_EXECUTABLE }),
-      chromiumOptions: {
-        // Flags necesarios para ejecutar en contenedor Docker sin display
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-gpu",
-        ],
-      },
+      chromiumOptions: CHROMIUM_OPTIONS,
       onProgress: ({ renderedFrames, encodedFrames }) => {
         if (renderedFrames % 30 === 0 || encodedFrames % 30 === 0) {
           logger.debug("Progreso de renderizado", {
