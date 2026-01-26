@@ -4,13 +4,24 @@ Bienvenido a la documentación del proyecto de generación de vídeos meteoroló
 
 ## Índice
 
+### Guías Prácticas
+- [Guías](./guides/) - Guías paso a paso para usar el proyecto
+  - [Workflow con curl](./guides/workflow-curl.md) - Guía completa para usar la API con curl
+
+### Documentación Técnica
 - [Arquitectura](./architecture/) - Documentación arquitectónica del sistema
-- [Features](./features/) - Especificaciones de features implementadas
 - [Componentes](./components/) - Documentación de componentes Remotion y animaciones
-- [Setup](./setup/) - Guías de instalación y configuración
 - [Referencia](./reference/) - Referencias técnicas y APIs
+
+### Configuración y Operación
+- [Setup](./setup/) - Guías de instalación y configuración
 - [Troubleshooting](./troubleshooting/) - Solución de problemas comunes
 - [Optimización](./optimization/) - Notas de rendimiento
+
+### Especificaciones
+- [Features](./features/) - Especificaciones de features implementadas
+
+### Seguridad
 - [Auditoría](./audit/) - Seguridad y auditoría
 
 ## Descripción del Proyecto
