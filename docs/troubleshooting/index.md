@@ -6,31 +6,69 @@
 
 **Síntoma**: Error 500 al renderizar
 
+**Diagnóstico rápido**:
+```bash
+# Verificar estado del sistema
+curl http://localhost:8020/diagnostics
+
+# Verificar estado de la cola
+curl http://localhost:8020/queue/status
+
+# Verificar sistema completo
+curl http://localhost:8020/test
+```
+
 **Posibles causas y soluciones**:
 
-1. **Remotion no instalado correctamente**:
+1. **Chrome/Chromium no disponible o sin permisos**:
+   - Verificar que Chrome/Chromium esté instalado
+   - En Docker: Verificar que el Dockerfile incluya Chromium
+   - Verificar permisos del ejecutable
+   - Ver logs: buscar errores "spawn", "ENOENT", "EACCES"
+
+2. **Remotion no instalado correctamente**:
    ```bash
    npm install @remotion/bundler @remotion/renderer
    ```
 
-2. **Espacio en disco insuficiente**:
+3. **Espacio en disco insuficiente**:
    - Verificar espacio disponible
    - Limpiar archivos temporales: `rm -rf temp/*`
+   - Error típico: "Espacio en disco insuficiente para renderizar"
 
-3. **Error en composición Remotion**:
+4. **Error en composición Remotion**:
    - Verificar logs del servidor para detalles
    - Probar renderizado manual: `npm run render`
    - Verificar que `src/index.tsx` exporte correctamente
+   - Error típico: "Error al seleccionar la composición 'WeatherForecast'"
 
-4. **Timeout excedido**:
+5. **Timeout excedido**:
    - Aumentar `RENDER_TIMEOUT` en `.env`
    - Verificar rendimiento del sistema
+   - Error típico: "Timeout al renderizar el vídeo"
+
+6. **Error al parsear texto**:
+   - Verificar formato del texto meteorológico
+   - El texto debe tener entre 10-1000 caracteres
+   - Error típico: "Error al parsear el texto meteorológico"
 
 **Debug**:
 ```bash
 # Ver logs detallados
 LOG_LEVEL=debug npm run server
+
+# En Docker
+docker-compose logs -f api
+
+# Verificar diagnóstico completo
+curl http://localhost:8020/diagnostics | jq
 ```
+
+**Mensajes de error comunes**:
+- `Error al iniciar el navegador`: Chrome/Chromium no está disponible
+- `Error al compilar el proyecto`: Problema con Remotion bundle
+- `Error al seleccionar la composición`: La composición 'WeatherForecast' no existe o tiene errores
+- `Timeout al renderizar`: El proceso tardó más de `RENDER_TIMEOUT` ms
 
 ### Cola Llena
 

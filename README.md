@@ -448,6 +448,48 @@ if (status.isFull) {
 }
 ```
 
+### Diagnóstico: `GET /diagnostics`
+
+Endpoint de diagnóstico completo del sistema para ayudar a identificar problemas.
+
+```bash
+curl http://localhost:8020/diagnostics
+```
+
+Response:
+```json
+{
+  "timestamp": "2026-01-26T12:00:00.000Z",
+  "server": {
+    "uptime": 3600,
+    "nodeVersion": "v22.13.0",
+    "platform": "linux",
+    "memory": {
+      "used": 150,
+      "total": 200,
+      "external": 10,
+      "unit": "MB"
+    }
+  },
+  "queue": {
+    "processing": 1,
+    "queueSize": 0,
+    "maxConcurrent": 2,
+    "isFull": false
+  },
+  "environment": {
+    "NODE_ENV": "production",
+    "PORT": "3000",
+    "MAX_CONCURRENT_RENDERS": "2",
+    "RENDER_TIMEOUT": "300000",
+    "REMOTION_BROWSER_EXECUTABLE": "/usr/bin/chromium",
+    "CHROME_BIN": "/usr/bin/chromium"
+  }
+}
+```
+
+Útil para diagnosticar errores 500 y verificar la configuración del sistema.
+
 ## 🛠️ Tech Stack
 
 ### Backend

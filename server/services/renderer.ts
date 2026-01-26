@@ -154,7 +154,32 @@ export async function renderVideo(
     logger.info("Renderizado completado", { outputPath });
     return outputPath;
   } catch (error) {
-    logger.error("Error en renderizado", { error });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    logger.error("Error en renderizado", {
+      error: errorMessage,
+      stack: errorStack,
+      errorName: error instanceof Error ? error.name : typeof error,
+      entryPoint: ENTRY_POINT,
+      browserExecutable: BROWSER_EXECUTABLE || "default",
+      outputPath,
+    });
+
+    // Proporcionar mensajes de error más específicos
+    if (errorMessage.includes("ENOENT") || errorMessage.includes("no such file")) {
+      throw new Error(`Archivo o directorio no encontrado: ${errorMessage}`);
+    } else if (errorMessage.includes("spawn") || errorMessage.includes("EACCES")) {
+      throw new Error(`Error al ejecutar Chrome/Chromium. Verifica que el ejecutable existe y tiene permisos: ${BROWSER_EXECUTABLE || "default"}`);
+    } else if (errorMessage.includes("timeout")) {
+      throw new Error(`Timeout al renderizar el vídeo. El proceso excedió el tiempo límite.`);
+    } else if (errorMessage.includes("bundle")) {
+      throw new Error(`Error al compilar el bundle de Remotion: ${errorMessage}`);
+    } else if (errorMessage.includes("composition")) {
+      throw new Error(`Error al seleccionar la composición 'WeatherForecast': ${errorMessage}`);
+    }
+    
+    // Re-lanzar el error original con contexto adicional
     throw error;
   }
 }

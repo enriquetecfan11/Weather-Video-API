@@ -226,6 +226,36 @@ app.get("/queue/status", (req, res) => {
   });
 });
 
+// Endpoint de diagnóstico para errores
+app.get("/diagnostics", (req, res) => {
+  const { getQueueCapacity } = require("./services/queue");
+  const capacity = getQueueCapacity();
+  
+  res.json({
+    timestamp: new Date().toISOString(),
+    server: {
+      uptime: process.uptime(),
+      nodeVersion: process.version,
+      platform: process.platform,
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+        external: Math.round(process.memoryUsage().external / 1024 / 1024),
+        unit: "MB",
+      },
+    },
+    queue: capacity,
+    environment: {
+      NODE_ENV: process.env.NODE_ENV || "development",
+      PORT: process.env.PORT || "3000",
+      MAX_CONCURRENT_RENDERS: process.env.MAX_CONCURRENT_RENDERS || "2",
+      RENDER_TIMEOUT: process.env.RENDER_TIMEOUT || "300000",
+      REMOTION_BROWSER_EXECUTABLE: process.env.REMOTION_BROWSER_EXECUTABLE || "not set",
+      CHROME_BIN: process.env.CHROME_BIN || "not set",
+    },
+  });
+});
+
 // Manejo de errores
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error("Error no manejado", {

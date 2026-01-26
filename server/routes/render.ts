@@ -50,7 +50,22 @@ export async function renderHandler(req: Request, res: Response): Promise<void> 
     });
 
     // Parsear texto (ahora async)
-    const parsedData = await parseWeatherText(text);
+    let parsedData;
+    try {
+      parsedData = await parseWeatherText(text);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error al parsear texto meteorológico", {
+        error: errorMessage,
+        textLength: text.length,
+        textPreview: text.substring(0, 100),
+      });
+      res.status(400).json({
+        error: "Error al parsear el texto meteorológico. Verifica el formato del texto.",
+        details: process.env.NODE_ENV === "development" ? errorMessage : undefined,
+      });
+      return;
+    }
 
     // Log de los datos parseados antes de renderizar
     logger.info("Datos parseados recibidos del parser", {
@@ -171,24 +186,52 @@ export async function renderHandler(req: Request, res: Response): Promise<void> 
     const processingTime = Date.now() - startTime;
     const errorMessage =
       error instanceof Error ? error.message : "Error desconocido";
+    const errorStack = error instanceof Error ? error.stack : undefined;
 
+    // Log detallado del error
     logger.error("Error en endpoint /render", {
       error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: errorStack,
       processingTimeMs: processingTime,
+      errorName: error instanceof Error ? error.name : typeof error,
+      errorString: String(error),
     });
 
-    // Determinar código de error apropiado
+    // Determinar código de error apropiado y mensaje amigable
     let statusCode = 500;
-    if (errorMessage.includes("timeout")) {
+    let userMessage = "Error interno del servidor al renderizar el vídeo";
+
+    if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
       statusCode = 503;
+      userMessage = "Timeout al renderizar el vídeo. El proceso tardó demasiado.";
     } else if (errorMessage.includes("cola") || errorMessage.includes("queue")) {
       statusCode = 429;
+      userMessage = "Cola de renders llena. Intenta de nuevo más tarde.";
+    } else if (errorMessage.includes("Espacio en disco")) {
+      statusCode = 503;
+      userMessage = "Espacio en disco insuficiente para renderizar el vídeo.";
+    } else if (errorMessage.includes("browser") || errorMessage.includes("Chrome") || errorMessage.includes("Chromium")) {
+      statusCode = 503;
+      userMessage = "Error al iniciar el navegador para renderizar. Verifica la configuración de Chrome/Chromium.";
+    } else if (errorMessage.includes("bundle") || errorMessage.includes("webpack")) {
+      statusCode = 500;
+      userMessage = "Error al compilar el proyecto. Verifica los logs del servidor.";
+    } else if (errorMessage.includes("composition") || errorMessage.includes("WeatherForecast")) {
+      statusCode = 500;
+      userMessage = "Error al seleccionar la composición. Verifica que la composición 'WeatherForecast' existe.";
+    } else if (errorMessage.includes("parse") || errorMessage.includes("parser")) {
+      statusCode = 400;
+      userMessage = "Error al parsear el texto meteorológico. Verifica el formato del texto.";
     }
 
     if (!res.headersSent) {
       res.status(statusCode).json({
-        error: errorMessage,
+        error: userMessage,
+        errorCode: error instanceof Error ? error.name : "UNKNOWN_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: errorMessage,
+          stack: errorStack,
+        }),
       });
     }
   }
