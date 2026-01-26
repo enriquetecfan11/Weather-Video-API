@@ -2,6 +2,7 @@ import React from "react";
 import { getPrecipitationTypeName, getIntensityName, Language } from "../utils/i18n";
 import { MOBILE_DESIGN, THEME } from "../utils/constants";
 import { truncateText } from "../utils/layout";
+import { WeatherIcon } from "./WeatherIcon";
 
 export type PhenomenonCardProps = {
   type: "rain" | "snow" | "storm" | null;
@@ -52,40 +53,88 @@ export const PhenomenonCard: React.FC<PhenomenonCardProps> = ({
     ? truncateText(intensityName, Math.floor(availableTextWidth / (intensityFontSize * 0.65)))
     : intensityName;
 
+  // Determinar el nombre de la condición para el icono
+  const conditionForIcon = type === "rain" ? "lluvia" : type === "snow" ? "nieve" : "tormenta";
+  const iconSize = Math.max(phenomenonFontSize * 1.5, 80);
+
   return (
     <div
       style={{
         opacity,
         background: THEME.COLORS.PHENOMENON_BACKGROUND,
-        border: `1px solid ${THEME.COLORS.PHENOMENON_BORDER}`,
-        borderRadius: MOBILE_DESIGN.CARD_RADIUS,
-        padding: `${cardPadding}px ${cardPadding * 1.5}px`,
+        border: `2px solid ${THEME.COLORS.PHENOMENON_BORDER}`,
+        borderRadius: MOBILE_DESIGN.CARD_RADIUS * 1.2,
+        padding: `${cardPadding * 1.2}px ${cardPadding * 1.8}px`,
         fontSize: phenomenonFontSize,
         fontWeight: THEME.TEXT_STYLES.PHENOMENON_FONT_WEIGHT,
         display: "flex",
         flexDirection: "column",
-        gap: THEME.SPACING.PHENOMENON_GAP,
-        maxWidth: "85%",
+        gap: THEME.SPACING.PHENOMENON_GAP * 1.5,
+        maxWidth: "90%",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: THEME.SPACING.CARD_ICON_GAP, flexWrap: "wrap" }}>
-        <span style={{ fontWeight: THEME.TEXT_STYLES.PHENOMENON_TYPE_FONT_WEIGHT, textTransform: THEME.STYLES.PHENOMENON_TEXT_TRANSFORM }}>
+      {/* Icono grande centrado */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          marginBottom: THEME.SPACING.PHENOMENON_GAP,
+        }}
+      >
+        <WeatherIcon condition={conditionForIcon} size={iconSize} color={THEME.COLORS.PRIMARY_TEXT} />
+      </div>
+
+      {/* Tipo y probabilidad */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: THEME.SPACING.CARD_ICON_GAP * 1.5,
+          flexWrap: "wrap",
+        }}
+      >
+        <span
+          style={{
+            fontWeight: THEME.TEXT_STYLES.PHENOMENON_TYPE_FONT_WEIGHT,
+            textTransform: THEME.STYLES.PHENOMENON_TEXT_TRANSFORM,
+            fontSize: phenomenonFontSize * 1.1,
+            letterSpacing: "0.5px",
+          }}
+        >
           {displayTypeName}
         </span>
         {probability !== undefined && (
-          <span style={{ opacity: THEME.OPACITY.PHENOMENON_PROBABILITY, fontSize: phenomenonFontSize * 0.9 }}>
+          <span
+            style={{
+              opacity: THEME.OPACITY.PHENOMENON_PROBABILITY,
+              fontSize: phenomenonFontSize,
+              background: "rgba(148, 163, 184, 0.2)",
+              padding: "4px 12px",
+              borderRadius: "12px",
+              fontWeight: 600,
+            }}
+          >
             {probability}%
           </span>
         )}
       </div>
+
+      {/* Intensidad */}
       {displayIntensityName && (
-        <div style={{ 
-          opacity: THEME.OPACITY.PHENOMENON_INTENSITY, 
-          fontSize: intensityFontSize, 
-          textTransform: THEME.STYLES.PHENOMENON_TEXT_TRANSFORM,
-          wordBreak: "break-word",
-          overflowWrap: "anywhere",
-        }}>
+        <div
+          style={{
+            opacity: THEME.OPACITY.PHENOMENON_INTENSITY,
+            fontSize: intensityFontSize,
+            textTransform: THEME.STYLES.PHENOMENON_TEXT_TRANSFORM,
+            wordBreak: "break-word",
+            overflowWrap: "anywhere",
+            textAlign: "center",
+            color: THEME.COLORS.SECONDARY_TEXT,
+          }}
+        >
           {displayIntensityName}
         </div>
       )}

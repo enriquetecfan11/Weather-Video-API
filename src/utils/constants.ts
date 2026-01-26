@@ -9,6 +9,30 @@ export const SPRING_CONFIG = {
 } as const;
 
 /**
+ * Configuraciones de spring mejoradas para diferentes tipos de animaciones
+ */
+export const SPRING_CONFIGS = {
+  // Para entradas dramáticas (temperatura)
+  DRAMATIC: {
+    damping: 15,
+    mass: 0.5,
+    stiffness: 200,
+  },
+  // Para entradas suaves (tarjetas)
+  SMOOTH: {
+    damping: 25,
+    mass: 0.8,
+    stiffness: 150,
+  },
+  // Para efectos sutiles
+  SUBTLE: {
+    damping: 30,
+    mass: 1,
+    stiffness: 100,
+  },
+} as const;
+
+/**
  * Offsets de tiempo para animaciones (en segundos)
  * Estructura narrativa: Bloque 1 (0-4s) → Bloque 2 (3.5-9s) → Bloque 3 (9-13s) → Bloque 4 (12-18s) → Outro (18-22s)
  */

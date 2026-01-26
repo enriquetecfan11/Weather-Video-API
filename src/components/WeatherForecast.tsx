@@ -7,10 +7,13 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { Cloud } from "./Cloud";
 import { TemperatureDisplay } from "./TemperatureDisplay";
 import { WeatherIcon } from "./WeatherIcon";
 import { PhenomenonCard } from "./PhenomenonCard";
+import { AnimatedBackground } from "./AnimatedBackground";
+import { AnimatedParticles } from "./AnimatedParticles";
+import { PrecipitationEffects } from "./PrecipitationEffects";
+import { ScaleIn, SlideIn, FadeIn, WordReveal } from "./animations";
 import { clamp } from "../utils/animations";
 import { SPRING_CONFIG, TIMING, MOBILE_DESIGN, THEME } from "../utils/constants";
 import { t, Language } from "../utils/i18n";
@@ -96,18 +99,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
     clamp
   );
 
-  const tempScale = spring({
-    frame: frame - TIMING.BLOCK_1_TEMP_DELAY * fps,
-    fps,
-    config: SPRING_CONFIG,
-  });
-
-  const cityY = interpolate(
-    frame,
-    [block1Start, block1Start + TIMING.BLOCK_1_TEMP_ANIMATION_DURATION * fps],
-    [20, 0],
-    clamp
-  );
+  // Animaciones mejoradas con nuevos componentes (se aplicarán en el render)
 
   const block1FadeOut = interpolate(
     frame,
@@ -139,30 +131,28 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
 
   const block2Opacity = frame < block2FadeOutStart ? block2IntroOpacity : block2FadeOut;
 
-  // Animación escalonada de las tarjetas del bloque 2
-  const getCardAnimation = (index: number) => {
-    const cardStart = block2Start + index * TIMING.BLOCK_2_CARD_STAGGER * fps;
-    const cardEnd = cardStart + TIMING.BLOCK_2_CARD_ANIMATION_DURATION * fps;
-    const cardY = interpolate(frame, [cardStart, cardEnd], [30, 0], clamp);
-    const cardOpacity = interpolate(
-      frame,
-      [cardStart, cardStart + 0.3 * fps],
-      [0, 1],
-      clamp
-    );
-    return { cardY, cardOpacity };
-  };
+  // Animación escalonada de las tarjetas del bloque 2 (ahora usando componentes)
 
   // Animaciones del Bloque 3 (9-13s): Fenómenos (condicional)
   const block3Start = TIMING.BLOCK_3_START * fps;
   const block3End = (TIMING.BLOCK_3_START + TIMING.BLOCK_3_DURATION) * fps;
+  const block3FadeOutStart = block3End - 0.5 * fps; // Fade out 0.5s antes del final
 
-  const block3Opacity = interpolate(
+  const block3IntroOpacity = interpolate(
     frame,
     [block3Start, block3Start + TIMING.BLOCK_3_INTRO_DURATION * fps],
     [0, 1],
     clamp
   );
+
+  const block3FadeOut = interpolate(
+    frame,
+    [block3FadeOutStart, block3End],
+    [1, 0],
+    clamp
+  );
+
+  const block3Opacity = frame < block3FadeOutStart ? block3IntroOpacity : block3FadeOut;
 
   // Animaciones del Bloque 4 (12-18s): Descripción completa (condicional)
   const block4Start = TIMING.BLOCK_4_START * fps;
@@ -184,14 +174,6 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
     clamp
   );
 
-  // Animación de nubes
-  const drift = interpolate(
-    frame,
-    [0, TIMING.CLOUD_DRIFT_DURATION * fps],
-    [0, TIMING.CLOUD_DRIFT_DISTANCE],
-    clamp
-  );
-
   // Usar tarjetas procesadas del layout adaptativo (con valores truncados si es necesario)
   const cards = adaptiveLayout.cards.processedCards.map((card, index) => ({
     ...card,
@@ -203,58 +185,49 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
   return (
     <AbsoluteFill
       style={{
-        background: THEME.COLORS.BACKGROUND_GRADIENT,
         color: THEME.COLORS.PRIMARY_TEXT,
         fontFamily: THEME.FONT_FAMILY,
         padding: `${MOBILE_DESIGN.PADDING_VERTICAL}px ${MOBILE_DESIGN.PADDING_HORIZONTAL}px`,
         boxSizing: "border-box",
       }}
     >
-      {/* Capas de fondo con gradientes radiales mejorados */}
+      {/* Fondo animado que cambia según la condición meteorológica */}
+      <AnimatedBackground condition={condition} />
+
+      {/* Capas de fondo con gradientes radiales animados (sobre el fondo animado) */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background: THEME.COLORS.BACKGROUND_RADIAL_1,
-          opacity: THEME.OPACITY.BACKGROUND_RADIAL,
+          background: `radial-gradient(circle at ${50 + Math.sin(frame * 0.005) * 10}% ${15 + Math.cos(frame * 0.008) * 5}%, rgba(59, 130, 246, 0.35), transparent 60%)`,
+          opacity: THEME.OPACITY.BACKGROUND_RADIAL * 0.5,
           zIndex: 0,
+          transition: "background 0.3s ease",
         }}
       />
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background: THEME.COLORS.BACKGROUND_RADIAL_2,
-          opacity: THEME.OPACITY.BACKGROUND_RADIAL * 0.8,
+          background: `radial-gradient(circle at ${30 + Math.cos(frame * 0.007) * 8}% ${50 + Math.sin(frame * 0.006) * 6}%, rgba(99, 102, 241, 0.2), transparent 70%)`,
+          opacity: THEME.OPACITY.BACKGROUND_RADIAL * 0.4,
           zIndex: 0,
+          transition: "background 0.3s ease",
         }}
       />
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background: THEME.COLORS.BACKGROUND_RADIAL_3,
-          opacity: THEME.OPACITY.BACKGROUND_RADIAL * 0.7,
+          background: `radial-gradient(circle at ${70 + Math.sin(frame * 0.006) * 7}% ${85 + Math.cos(frame * 0.009) * 4}%, rgba(148, 163, 184, 0.3), transparent 65%)`,
+          opacity: THEME.OPACITY.BACKGROUND_RADIAL * 0.35,
           zIndex: 0,
+          transition: "background 0.3s ease",
         }}
       />
 
-      {/* Capa de nubes - reposicionadas para formato vertical */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 200,
-          zIndex: 1,
-          pointerEvents: "none",
-          overflow: "hidden",
-        }}
-      >
-        <Cloud left={200} top={-40} scale={0.6} drift={Math.max(drift * 0.4, -80)} />
-        <Cloud left={700} top={-60} scale={0.5} drift={Math.max(drift * 0.3, -60)} />
-      </div>
+      {/* Partículas animadas estilo fuegos artificiales */}
+      <AnimatedParticles />
 
       {/* Contenido principal */}
       <div
@@ -291,50 +264,72 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
             }}
           >
             {/* Temperatura */}
-            <div
-              style={{
-                transform: `scale(${0.95 + tempScale * 0.05})`,
-                transformOrigin: "center",
-                display: "flex",
-                justifyContent: "center",
-                width: "100%",
-              }}
+            <ScaleIn
+              delay={TIMING.BLOCK_1_TEMP_DELAY}
+              duration={TIMING.BLOCK_1_TEMP_ANIMATION_DURATION * fps}
+              fromScale={0.8}
+              toScale={1}
+              springConfig="DRAMATIC"
+              withFade={false}
             >
-              <TemperatureDisplay
-                temperature={displayTemp}
-                unit={temperatureUnit}
-                fontSize={adaptiveLayout.hero.temperatureFontSize}
-              />
-            </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  width: "100%",
+                }}
+              >
+                <TemperatureDisplay
+                  temperature={displayTemp}
+                  unit={temperatureUnit}
+                  fontSize={adaptiveLayout.hero.temperatureFontSize}
+                  delay={TIMING.BLOCK_1_TEMP_DELAY}
+                />
+              </div>
+            </ScaleIn>
 
             {/* Ciudad */}
-            <div
-              style={{
-                transform: `translateY(${cityY}px)`,
-                fontSize: adaptiveLayout.hero.cityFontSize,
-                fontWeight: 600,
-                lineHeight: 1.2,
-                width: "100%",
-                textAlign: "center",
-                wordBreak: "break-word",
-                overflowWrap: "anywhere",
-              }}
+            <SlideIn
+              direction="up"
+              distance={40}
+              delay={TIMING.BLOCK_1_TEMP_ANIMATION_DURATION * 0.5}
+              duration={TIMING.BLOCK_1_TEMP_ANIMATION_DURATION * fps}
+              springConfig="SMOOTH"
+              withFade={false}
             >
-              <span style={{ display: "block" }}>{city}</span>
-              {country && (
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: adaptiveLayout.hero.countryFontSize,
-                    opacity: THEME.OPACITY.COUNTRY_TEXT,
-                    marginTop: THEME.SPACING.COUNTRY_MARGIN_TOP,
-                    fontWeight: THEME.TEXT_STYLES.COUNTRY_FONT_WEIGHT,
-                  }}
-                >
-                  {country}
-                </span>
-              )}
-            </div>
+              <div
+                style={{
+                  fontSize: adaptiveLayout.hero.cityFontSize,
+                  fontWeight: 600,
+                  lineHeight: 1.2,
+                  width: "100%",
+                  textAlign: "center",
+                  wordBreak: "break-word",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                <span style={{ display: "block" }}>{city}</span>
+                {country && (
+                  <FadeIn
+                    delay={TIMING.BLOCK_1_TEMP_ANIMATION_DURATION + 0.1}
+                    duration={20}
+                    springConfig="SUBTLE"
+                  >
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: adaptiveLayout.hero.countryFontSize,
+                        opacity: THEME.OPACITY.COUNTRY_TEXT,
+                        marginTop: THEME.SPACING.COUNTRY_MARGIN_TOP,
+                        fontWeight: THEME.TEXT_STYLES.COUNTRY_FONT_WEIGHT,
+                      }}
+                    >
+                      {country}
+                    </span>
+                  </FadeIn>
+                )}
+              </div>
+            </SlideIn>
           </div>
         </Sequence>
 
@@ -355,51 +350,85 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
             }}
           >
             {cards.map((card, index) => {
-              const { cardY, cardOpacity } = getCardAnimation(index);
+              const cardDelay = index * TIMING.BLOCK_2_CARD_STAGGER;
               return (
-                <div
+                <ScaleIn
                   key={card.label}
-                  style={{
-                    opacity: cardOpacity,
-                    transform: `translateY(${cardY}px)`,
-                    background: THEME.COLORS.CARD_BACKGROUND,
-                    border: `1px solid ${THEME.COLORS.CARD_BORDER}`,
-                    borderRadius: MOBILE_DESIGN.CARD_RADIUS,
-                    padding: adaptiveLayout.cards.cardPadding,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: THEME.SPACING.CARD_ICON_GAP,
-                  }}
+                  delay={cardDelay}
+                  duration={TIMING.BLOCK_2_CARD_ANIMATION_DURATION * fps}
+                  fromScale={0.9}
+                  toScale={1}
+                  springConfig="SMOOTH"
+                  withFade={false}
                 >
-                  {card.icon && (
-                    <div style={{ flexShrink: 0, opacity: THEME.OPACITY.CARD_ICON }}>{card.icon}</div>
-                  )}
-                  <div style={{ flex: 1 }}>
+                  <SlideIn
+                    direction="up"
+                    distance={50}
+                    delay={cardDelay}
+                    duration={TIMING.BLOCK_2_CARD_ANIMATION_DURATION * fps}
+                    springConfig="SMOOTH"
+                    withFade={false}
+                  >
                     <div
                       style={{
-                        fontSize: adaptiveLayout.cards.cardTitleFontSize,
-                        textTransform: THEME.STYLES.CARD_TITLE_TEXT_TRANSFORM,
-                        letterSpacing: THEME.STYLES.CARD_TITLE_LETTER_SPACING,
-                        color: THEME.COLORS.SECONDARY_TEXT,
-                        marginBottom: THEME.SPACING.CARD_TITLE_MARGIN_BOTTOM,
-                        fontWeight: THEME.TEXT_STYLES.CARD_TITLE_FONT_WEIGHT,
+                        background: THEME.COLORS.CARD_BACKGROUND,
+                        border: `1px solid ${THEME.COLORS.CARD_BORDER}`,
+                        borderRadius: MOBILE_DESIGN.CARD_RADIUS,
+                        padding: adaptiveLayout.cards.cardPadding,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: THEME.SPACING.CARD_ICON_GAP,
                       }}
                     >
-                      {card.label}
+                      {card.icon && (
+                        <FadeIn
+                          delay={cardDelay + 0.1}
+                          duration={15}
+                          springConfig="SUBTLE"
+                        >
+                          <div style={{ flexShrink: 0, opacity: THEME.OPACITY.CARD_ICON }}>{card.icon}</div>
+                        </FadeIn>
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <FadeIn
+                          delay={cardDelay + 0.05}
+                          duration={15}
+                          springConfig="SUBTLE"
+                        >
+                          <div
+                            style={{
+                              fontSize: adaptiveLayout.cards.cardTitleFontSize,
+                              textTransform: THEME.STYLES.CARD_TITLE_TEXT_TRANSFORM,
+                              letterSpacing: THEME.STYLES.CARD_TITLE_LETTER_SPACING,
+                              color: THEME.COLORS.SECONDARY_TEXT,
+                              marginBottom: THEME.SPACING.CARD_TITLE_MARGIN_BOTTOM,
+                              fontWeight: THEME.TEXT_STYLES.CARD_TITLE_FONT_WEIGHT,
+                            }}
+                          >
+                            {card.label}
+                          </div>
+                        </FadeIn>
+                        <FadeIn
+                          delay={cardDelay + 0.15}
+                          duration={20}
+                          springConfig="SUBTLE"
+                        >
+                          <div
+                            style={{
+                              fontSize: adaptiveLayout.cards.cardValueFontSize,
+                              fontWeight: THEME.TEXT_STYLES.CARD_VALUE_FONT_WEIGHT,
+                              lineHeight: 1.2,
+                              wordBreak: "break-word",
+                              overflowWrap: "anywhere",
+                            }}
+                          >
+                            {card.value}
+                          </div>
+                        </FadeIn>
+                      </div>
                     </div>
-                    <div
-                      style={{
-                        fontSize: adaptiveLayout.cards.cardValueFontSize,
-                        fontWeight: THEME.TEXT_STYLES.CARD_VALUE_FONT_WEIGHT,
-                        lineHeight: 1.2,
-                        wordBreak: "break-word",
-                        overflowWrap: "anywhere",
-                      }}
-                    >
-                      {card.value}
-                    </div>
-                  </div>
-                </div>
+                  </SlideIn>
+                </ScaleIn>
               );
             })}
           </div>
@@ -407,29 +436,72 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
 
         {/* BLOQUE 3: Fenómenos condicionales (9-13s) */}
         {precipitation?.type && adaptiveLayout.phenomenon && (
-          <Sequence from={block3Start} durationInFrames={block3End - block3Start}>
-            <div
-              style={{
-                opacity: block3Opacity,
-                marginTop: MOBILE_DESIGN.SECTION_GAP,
-                display: "flex",
-                justifyContent: "center",
-                width: "100%",
-                maxWidth: MOBILE_DESIGN.MAX_CONTENT_WIDTH,
-                alignSelf: "center",
-              }}
-            >
-              <PhenomenonCard
+          <>
+            {/* Efectos visuales de precipitación (lluvia, nieve, tormenta) */}
+            <Sequence from={block3Start} durationInFrames={block3End - block3Start}>
+              <PrecipitationEffects
                 type={precipitation.type}
-                intensity={precipitation.intensity}
-                probability={precipitation.probability}
-                language={language}
-                opacity={block3Opacity}
-                phenomenonFontSize={adaptiveLayout.phenomenon.phenomenonFontSize}
-                intensityFontSize={adaptiveLayout.phenomenon.intensityFontSize}
+                intensity={(precipitation.intensity?.toLowerCase() as "weak" | "moderate" | "strong") || "moderate"}
+                opacity={0.4}
               />
-            </div>
-          </Sequence>
+            </Sequence>
+
+            {/* Tarjeta de fenómeno - Centrada en pantalla */}
+            <Sequence from={block3Start} durationInFrames={block3End - block3Start}>
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  opacity: block3Opacity,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  width: "100%",
+                  maxWidth: MOBILE_DESIGN.MAX_CONTENT_WIDTH,
+                  paddingLeft: MOBILE_DESIGN.PADDING_HORIZONTAL,
+                  paddingRight: MOBILE_DESIGN.PADDING_HORIZONTAL,
+                  boxSizing: "border-box",
+                  zIndex: 10,
+                }}
+              >
+                <ScaleIn
+                  delay={0}
+                  duration={TIMING.BLOCK_3_INTRO_DURATION * fps}
+                  fromScale={0.85}
+                  toScale={1}
+                  springConfig="DRAMATIC"
+                  withFade={false}
+                >
+                  <SlideIn
+                    direction="up"
+                    distance={50}
+                    delay={0}
+                    duration={TIMING.BLOCK_3_INTRO_DURATION * fps}
+                    springConfig="SMOOTH"
+                    withFade={false}
+                  >
+                    <FadeIn
+                      delay={0.2}
+                      duration={20}
+                      springConfig="SUBTLE"
+                    >
+                      <PhenomenonCard
+                        type={precipitation.type}
+                        intensity={precipitation.intensity}
+                        probability={precipitation.probability}
+                        language={language}
+                        opacity={1}
+                        phenomenonFontSize={adaptiveLayout.phenomenon.phenomenonFontSize}
+                        intensityFontSize={adaptiveLayout.phenomenon.intensityFontSize}
+                      />
+                    </FadeIn>
+                  </SlideIn>
+                </ScaleIn>
+              </div>
+            </Sequence>
+          </>
         )}
 
         {/* BLOQUE 4: Descripción completa (12-15s) - Centrado en pantalla */}
@@ -452,25 +524,38 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
                 boxSizing: "border-box",
               }}
             >
-              <div
-                style={{
-                  background: THEME.COLORS.DESCRIPTION_BACKGROUND,
-                  border: `1px solid ${THEME.COLORS.DESCRIPTION_BORDER}`,
-                  borderRadius: MOBILE_DESIGN.CARD_RADIUS,
-                  padding: adaptiveLayout.description.descriptionPadding,
-                  fontSize: adaptiveLayout.description.descriptionFontSize,
-                  fontWeight: THEME.TEXT_STYLES.DESCRIPTION_FONT_WEIGHT,
-                  lineHeight: THEME.SPACING.DESCRIPTION_LINE_HEIGHT,
-                  color: THEME.COLORS.PRIMARY_TEXT,
-                  opacity: THEME.OPACITY.DESCRIPTION_TEXT * block4Opacity,
-                  textAlign: "center",
-                  wordBreak: "break-word",
-                  overflowWrap: "anywhere",
-                  width: "100%",
-                }}
+              <ScaleIn
+                delay={0}
+                duration={TIMING.BLOCK_4_INTRO_DURATION * fps}
+                fromScale={0.9}
+                toScale={1}
+                springConfig="SMOOTH"
+                withFade={false}
               >
-                {description}
-              </div>
+                <div
+                  style={{
+                    background: THEME.COLORS.DESCRIPTION_BACKGROUND,
+                    border: `1px solid ${THEME.COLORS.DESCRIPTION_BORDER}`,
+                    borderRadius: MOBILE_DESIGN.CARD_RADIUS,
+                    padding: adaptiveLayout.description.descriptionPadding,
+                    fontSize: adaptiveLayout.description.descriptionFontSize,
+                    fontWeight: THEME.TEXT_STYLES.DESCRIPTION_FONT_WEIGHT,
+                    lineHeight: THEME.SPACING.DESCRIPTION_LINE_HEIGHT,
+                    color: THEME.COLORS.PRIMARY_TEXT,
+                    opacity: THEME.OPACITY.DESCRIPTION_TEXT,
+                    textAlign: "center",
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
+                    width: "100%",
+                  }}
+                >
+                  <WordReveal
+                    text={description}
+                    delay={TIMING.BLOCK_4_INTRO_DURATION}
+                    wordDelay={0.06}
+                  />
+                </div>
+              </ScaleIn>
             </div>
           </Sequence>
         )}
