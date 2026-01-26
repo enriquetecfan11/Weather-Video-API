@@ -264,9 +264,28 @@ const url = URL.createObjectURL(blob);
 #### Códigos de Error
 
 - `400 Bad Request`: Error de validación (texto inválido, parámetros incorrectos)
-- `429 Too Many Requests`: Cola llena (demasiados renders concurrentes)
+- `429 Too Many Requests`: Cola llena (demasiados renders concurrentes o en cola)
+  - Incluye información del estado de la cola en la respuesta
+  - Header `Retry-After` sugerido (60 segundos)
 - `500 Internal Server Error`: Error en el renderizado
 - `503 Service Unavailable`: Servicio temporalmente no disponible (timeout, etc.)
+
+**Ejemplo de respuesta 429:**
+```json
+{
+  "error": "Cola de renders llena. Intenta de nuevo más tarde.",
+  "queueStatus": {
+    "processing": 2,
+    "queueSize": 2,
+    "maxConcurrent": 2,
+    "maxQueueSize": 4,
+    "available": 0,
+    "isFull": true,
+    "utilization": 1.0
+  },
+  "retryAfter": 60
+}
+```
 
 ### Health Check: `GET /health`
 
@@ -386,6 +405,48 @@ Este endpoint es útil para:
 - Diagnosticar problemas de configuración
 - Verificar dependencias antes de desplegar
 - Monitoreo de salud del sistema
+
+### Estado de la Cola: `GET /queue/status`
+
+Consulta el estado actual de la cola de renders para verificar si puede aceptar más trabajos.
+
+```bash
+curl http://localhost:8020/queue/status
+```
+
+Response:
+```json
+{
+  "pending": 0,
+  "processing": 1,
+  "completed": 5,
+  "failed": 0,
+  "queueSize": 0,
+  "maxConcurrent": 2,
+  "maxQueueSize": 4,
+  "available": 3,
+  "isFull": false,
+  "utilization": 0.25,
+  "timeout": 300000,
+  "timestamp": "2026-01-26T12:00:00.000Z"
+}
+```
+
+**Campos importantes:**
+- `isFull`: `true` si la cola no puede aceptar más trabajos
+- `available`: Número de slots disponibles
+- `utilization`: Porcentaje de uso de la cola (0.0 a 1.0)
+- `queueSize`: Número de trabajos esperando en cola
+
+**Uso recomendado para n8n:**
+Antes de hacer una petición a `/render`, verifica el estado de la cola:
+```javascript
+const status = await fetch('http://localhost:8020/queue/status').then(r => r.json());
+if (status.isFull) {
+  // Esperar antes de intentar de nuevo
+  await new Promise(resolve => setTimeout(resolve, 60 * 1000));
+}
+```
 
 ## 🛠️ Tech Stack
 
