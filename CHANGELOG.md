@@ -22,6 +22,9 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Mejor manejo de rangos de temperatura (promedio correcto)
 - Mejor extracción de condición meteorológica (no confunde "muy nublado" con "lluvia")
 - Mejor extracción de información de viento
+- **Duración del Bloque 4 (descripción completa) aumentada de 3 a 6 segundos** para mejorar la legibilidad
+- Duración del outro aumentada de 2 a 4 segundos
+- Duración total del video ajustada de 17 a 22 segundos
 
 ### Documentación
 - Actualizada documentación completa en `docs/`
