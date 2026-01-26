@@ -108,9 +108,30 @@ export async function addToQueue<T>(
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Error desconocido";
-    updateJobStatus(jobId, "failed", { error: errorMessage });
-    logger.error("Error en render de cola", { jobId, error });
-    throw error;
+    const errorName = error instanceof Error ? error.name : typeof error;
+    
+    // Detectar timeout de p-queue
+    let finalError = error;
+    if (
+      errorName === "TimeoutError" ||
+      errorMessage.includes("timeout") ||
+      errorMessage.includes("timed out")
+    ) {
+      const timeoutError = new Error(
+        `Timeout: El render excedió el tiempo límite de ${RENDER_TIMEOUT}ms (${Math.round(RENDER_TIMEOUT / 1000)}s)`
+      );
+      timeoutError.name = "TimeoutError";
+      finalError = timeoutError;
+    }
+    
+    updateJobStatus(jobId, "failed", { error: finalError instanceof Error ? finalError.message : String(finalError) });
+    logger.error("Error en render de cola", { 
+      jobId, 
+      error: finalError instanceof Error ? finalError.message : String(finalError),
+      errorName: finalError instanceof Error ? finalError.name : typeof finalError,
+      timeout: RENDER_TIMEOUT,
+    });
+    throw finalError;
   }
 }
 

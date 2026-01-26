@@ -13,6 +13,11 @@ import {
 import logger from "../utils/logger";
 
 /**
+ * Timeout de render en milisegundos (debe coincidir con queue.ts)
+ */
+const RENDER_TIMEOUT = parseInt(process.env.RENDER_TIMEOUT || "300000", 10);
+
+/**
  * Endpoint POST /render
  * Renderiza un vídeo meteorológico desde texto
  */
@@ -187,50 +192,81 @@ export async function renderHandler(req: Request, res: Response): Promise<void> 
     const errorMessage =
       error instanceof Error ? error.message : "Error desconocido";
     const errorStack = error instanceof Error ? error.stack : undefined;
+    const errorName = error instanceof Error ? error.name : typeof error;
+    const errorString = String(error).toLowerCase();
 
     // Log detallado del error
     logger.error("Error en endpoint /render", {
       error: errorMessage,
       stack: errorStack,
       processingTimeMs: processingTime,
-      errorName: error instanceof Error ? error.name : typeof error,
+      errorName,
       errorString: String(error),
+      timeout: RENDER_TIMEOUT,
+      processingTimeSeconds: Math.round(processingTime / 1000),
     });
 
     // Determinar código de error apropiado y mensaje amigable
     let statusCode = 500;
     let userMessage = "Error interno del servidor al renderizar el vídeo";
+    let errorType = "UNKNOWN_ERROR";
 
-    if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
+    // Detectar timeout (p-queue puede lanzar diferentes tipos de errores de timeout)
+    if (
+      errorString.includes("timeout") ||
+      errorString.includes("timed out") ||
+      errorName === "TimeoutError" ||
+      (processingTime >= RENDER_TIMEOUT - 1000) // Si está cerca del timeout
+    ) {
       statusCode = 503;
-      userMessage = "Timeout al renderizar el vídeo. El proceso tardó demasiado.";
-    } else if (errorMessage.includes("cola") || errorMessage.includes("queue")) {
+      userMessage = `Timeout al renderizar el vídeo. El proceso tardó más de ${Math.round(RENDER_TIMEOUT / 1000)} segundos.`;
+      errorType = "TIMEOUT";
+    } else if (errorString.includes("cola") || errorString.includes("queue")) {
       statusCode = 429;
       userMessage = "Cola de renders llena. Intenta de nuevo más tarde.";
-    } else if (errorMessage.includes("Espacio en disco")) {
+      errorType = "QUEUE_FULL";
+    } else if (errorString.includes("espacio en disco") || errorString.includes("disk space")) {
       statusCode = 503;
       userMessage = "Espacio en disco insuficiente para renderizar el vídeo.";
-    } else if (errorMessage.includes("browser") || errorMessage.includes("Chrome") || errorMessage.includes("Chromium")) {
+      errorType = "DISK_SPACE";
+    } else if (
+      errorString.includes("browser") ||
+      errorString.includes("chrome") ||
+      errorString.includes("chromium") ||
+      errorString.includes("puppeteer") ||
+      errorString.includes("spawn") ||
+      errorString.includes("eacces")
+    ) {
       statusCode = 503;
       userMessage = "Error al iniciar el navegador para renderizar. Verifica la configuración de Chrome/Chromium.";
-    } else if (errorMessage.includes("bundle") || errorMessage.includes("webpack")) {
+      errorType = "BROWSER_ERROR";
+    } else if (errorString.includes("bundle") || errorString.includes("webpack")) {
       statusCode = 500;
       userMessage = "Error al compilar el proyecto. Verifica los logs del servidor.";
-    } else if (errorMessage.includes("composition") || errorMessage.includes("WeatherForecast")) {
+      errorType = "BUNDLE_ERROR";
+    } else if (errorString.includes("composition") || errorString.includes("weatherforecast")) {
       statusCode = 500;
       userMessage = "Error al seleccionar la composición. Verifica que la composición 'WeatherForecast' existe.";
-    } else if (errorMessage.includes("parse") || errorMessage.includes("parser")) {
+      errorType = "COMPOSITION_ERROR";
+    } else if (errorString.includes("parse") || errorString.includes("parser")) {
       statusCode = 400;
       userMessage = "Error al parsear el texto meteorológico. Verifica el formato del texto.";
+      errorType = "PARSER_ERROR";
     }
 
     if (!res.headersSent) {
       res.status(statusCode).json({
         error: userMessage,
-        errorCode: error instanceof Error ? error.name : "UNKNOWN_ERROR",
+        errorCode: errorType,
+        errorName,
+        processingTimeMs: processingTime,
+        timeout: RENDER_TIMEOUT,
         ...(process.env.NODE_ENV === "development" && {
           details: errorMessage,
           stack: errorStack,
+        }),
+        ...(errorType === "TIMEOUT" && {
+          suggestion: `Aumenta RENDER_TIMEOUT en .env (actual: ${RENDER_TIMEOUT}ms) o reduce la calidad/resolución del vídeo.`,
         }),
       });
     }

@@ -227,9 +227,25 @@ app.get("/queue/status", (req, res) => {
 });
 
 // Endpoint de diagnóstico para errores
-app.get("/diagnostics", (req, res) => {
-  const { getQueueCapacity } = require("./services/queue");
+app.get("/diagnostics", async (req, res) => {
+  const { getQueueCapacity } = await import("./services/queue");
   const capacity = getQueueCapacity();
+  
+  // Verificar espacio en disco
+  let diskSpace = { status: "unknown", message: "No verificado" };
+  try {
+    const { checkDiskSpace } = await import("./utils/fileManager");
+    const hasSpace = await checkDiskSpace();
+    diskSpace = {
+      status: hasSpace ? "ok" : "error",
+      message: hasSpace ? "Espacio disponible" : "Problema con espacio en disco",
+    };
+  } catch (error) {
+    diskSpace = {
+      status: "error",
+      message: `Error verificando espacio: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
   
   res.json({
     timestamp: new Date().toISOString(),
@@ -245,6 +261,7 @@ app.get("/diagnostics", (req, res) => {
       },
     },
     queue: capacity,
+    diskSpace,
     environment: {
       NODE_ENV: process.env.NODE_ENV || "development",
       PORT: process.env.PORT || "3000",
@@ -252,6 +269,18 @@ app.get("/diagnostics", (req, res) => {
       RENDER_TIMEOUT: process.env.RENDER_TIMEOUT || "300000",
       REMOTION_BROWSER_EXECUTABLE: process.env.REMOTION_BROWSER_EXECUTABLE || "not set",
       CHROME_BIN: process.env.CHROME_BIN || "not set",
+      PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH || "not set",
+    },
+    recommendations: {
+      ...(capacity.isFull && {
+        queue: "La cola está llena. Espera antes de hacer nuevos renders.",
+      }),
+      ...(diskSpace.status === "error" && {
+        disk: "Problema con el espacio en disco. Verifica los directorios temp/ y out/.",
+      }),
+      ...(parseInt(process.env.RENDER_TIMEOUT || "300000", 10) < 300000 && {
+        timeout: `RENDER_TIMEOUT es bajo (${process.env.RENDER_TIMEOUT}ms). Considera aumentarlo si tienes timeouts frecuentes.`,
+      }),
     },
   });
 });
