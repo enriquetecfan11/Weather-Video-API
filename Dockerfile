@@ -1,11 +1,12 @@
 # Stage 1: Build
-FROM node:22.13-alpine AS builder
+FROM node:22-bookworm-slim AS builder
 
 # Instalar dependencias del sistema necesarias para build
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
-    g++
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -19,29 +20,30 @@ RUN npm install
 COPY . .
 
 # Stage 2: Runtime
-FROM node:22.13-alpine AS runtime
+FROM node:22-bookworm-slim AS runtime
 
-# Instalar Chrome/Chromium y dependencias necesarias para Remotion
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    freetype-dev \
-    harfbuzz \
+# Instalar dependencias necesarias para Chrome Headless Shell de Remotion
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 \
+    libdbus-1-3 \
+    libatk1.0-0 \
+    libgbm-dev \
+    libasound2 \
+    libxrandr2 \
+    libxkbcommon-dev \
+    libxfixes3 \
+    libxcomposite1 \
+    libxdamage1 \
+    libatk-bridge2.0-0 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libcups2 \
     ca-certificates \
-    ttf-freefont \
-    font-noto-emoji \
-    && rm -rf /var/cache/apk/*
+    fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
 
-# Crear symlink para chromium-browser (Alpine usa /usr/bin/chromium)
-RUN ln -s /usr/bin/chromium /usr/bin/chromium-browser || true
-
-# Configurar variables de entorno para Chrome
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-ENV CHROME_BIN=/usr/bin/chromium
-ENV REMOTION_BROWSER_EXECUTABLE=/usr/bin/chromium
-ENV DISPLAY=:99
+# No configurar REMOTION_BROWSER_EXECUTABLE para que use Chrome Headless Shell por defecto
+# Remotion descargará automáticamente Chrome Headless Shell si no está configurado
 
 WORKDIR /app
 
@@ -51,6 +53,11 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/server ./server
+
+# Pre-descargar Chrome Headless Shell y asegurar permisos
+RUN npx remotion browser ensure && \
+    find node_modules/.remotion -type f -name "*chrome-headless-shell*" -exec chmod +x {} \; 2>/dev/null || true && \
+    find node_modules/.remotion -type d -exec chmod 755 {} \; 2>/dev/null || true
 
 # Crear directorios para archivos temporales y salida
 RUN mkdir -p temp out
@@ -72,13 +79,14 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Usuario no root para seguridad
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
-    chown -R nodejs:nodejs /app && \
-    chmod 755 /usr/bin/chromium
+RUN groupadd -r nodejs -g 1001 && \
+    useradd -r -g nodejs -u 1001 nodejs
 
-# Chromium necesita acceso a /dev/shm para funcionar correctamente
+# Chrome Headless Shell necesita acceso a /dev/shm para funcionar correctamente
 RUN mkdir -p /dev/shm && chmod 1777 /dev/shm
+
+# Asegurar que nodejs tenga permisos en /app (incluyendo node_modules/.remotion)
+RUN chown -R nodejs:nodejs /app
 
 USER nodejs
 
