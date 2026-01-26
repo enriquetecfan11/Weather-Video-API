@@ -1,3 +1,6 @@
+// Cargar variables de entorno desde .env
+import "dotenv/config";
+
 import express from "express";
 import { renderHandler } from "./routes/render";
 import { initializeTempDir, cleanupOldFiles } from "./utils/fileManager";

@@ -1,4 +1,5 @@
 import type { WeatherForecastProps } from "../../src/components/WeatherForecast";
+import logger from "../utils/logger";
 
 /**
  * Datos parseados del texto meteorológico
@@ -81,6 +82,8 @@ export interface ServerConfig {
 
 /**
  * Convierte ParsedWeatherData a WeatherForecastProps
+ * Asegura que todos los campos requeridos estén presentes y maneja correctamente
+ * valores undefined/null para evitar que Remotion use los defaultProps
  */
 export function toWeatherForecastProps(
   data: ParsedWeatherData
@@ -90,20 +93,61 @@ export function toWeatherForecastProps(
     ? (data.temperatureRange.min + data.temperatureRange.max) / 2
     : data.temperatureC;
 
-  return {
+  // Manejar precipitation: solo incluir si type no es null
+  let precipitation: WeatherForecastProps["precipitation"] = undefined;
+  if (data.precipitation && data.precipitation.type !== null) {
+    precipitation = {
+      type: data.precipitation.type,
+      intensity: data.precipitation.intensity,
+      probability: data.precipitation.probability,
+    };
+  }
+
+  // Construir props, asegurando que los campos requeridos estén presentes
+  const props: WeatherForecastProps = {
     city: data.city || "Ciudad",
-    country: data.country,
     condition: data.condition,
     temperatureC,
-    feelsLike: data.feelsLike,
-    feelsLikeTemp: data.feelsLikeTemp,
-    wind: data.wind,
-    windSpeed: data.windSpeed,
-    windDirection: data.windDirection,
-    windUnit: data.windUnit || "km/h",
+    temperatureUnit: data.temperatureUnit || "C",
     language: data.language || "es",
-    temperatureUnit: data.temperatureUnit,
-    precipitation: data.precipitation,
-    description: data.description,
+    windUnit: data.windUnit || "km/h",
+    description: data.description || "",
   };
+
+  // Agregar campos opcionales solo si tienen valores definidos
+  if (data.country) {
+    props.country = data.country;
+  }
+  if (data.feelsLike) {
+    props.feelsLike = data.feelsLike;
+  }
+  if (data.feelsLikeTemp !== undefined) {
+    props.feelsLikeTemp = data.feelsLikeTemp;
+  }
+  if (data.wind) {
+    props.wind = data.wind;
+  }
+  if (data.windSpeed !== undefined) {
+    props.windSpeed = data.windSpeed;
+  }
+  if (data.windDirection) {
+    props.windDirection = data.windDirection;
+  }
+  if (precipitation) {
+    props.precipitation = precipitation;
+  }
+
+  // Log para debug
+  logger.debug("Convertiendo ParsedWeatherData a WeatherForecastProps", {
+    originalCity: data.city,
+    originalCondition: data.condition,
+    originalTemperatureC: data.temperatureC,
+    finalCity: props.city,
+    finalCondition: props.condition,
+    finalTemperatureC: props.temperatureC,
+    hasPrecipitation: !!props.precipitation,
+    precipitationType: props.precipitation?.type,
+  });
+
+  return props;
 }

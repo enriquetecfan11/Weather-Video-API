@@ -40,6 +40,29 @@ export async function renderHandler(req: Request, res: Response): Promise<void> 
     // Parsear texto (ahora async)
     const parsedData = await parseWeatherText(text);
 
+    // Log de los datos parseados antes de renderizar
+    logger.info("Datos parseados recibidos del parser", {
+      city: parsedData.city,
+      country: parsedData.country,
+      condition: parsedData.condition,
+      temperatureC: parsedData.temperatureC,
+      temperatureRange: parsedData.temperatureRange,
+      temperatureUnit: parsedData.temperatureUnit,
+      feelsLike: parsedData.feelsLike,
+      feelsLikeTemp: parsedData.feelsLikeTemp,
+      wind: parsedData.wind,
+      windSpeed: parsedData.windSpeed,
+      windDirection: parsedData.windDirection,
+      windUnit: parsedData.windUnit,
+      hasPrecipitation: !!parsedData.precipitation,
+      precipitationType: parsedData.precipitation?.type,
+      precipitationIntensity: parsedData.precipitation?.intensity,
+      precipitationProbability: parsedData.precipitation?.probability,
+      hasDescription: !!parsedData.description,
+      descriptionLength: parsedData.description?.length || 0,
+      language: parsedData.language,
+    });
+
     // Crear job
     const job = createRenderJob();
 

@@ -52,6 +52,29 @@ export async function renderVideo(
   const outputPath = generateTempFilePath();
 
   try {
+    // Convertir datos parseados a props
+    const inputProps = toWeatherForecastProps(parsedData);
+    
+    // Log detallado de los inputProps que se van a pasar a Remotion
+    logger.info("InputProps que se pasarán a Remotion", {
+      city: inputProps.city,
+      country: inputProps.country,
+      condition: inputProps.condition,
+      temperatureC: inputProps.temperatureC,
+      temperatureUnit: inputProps.temperatureUnit,
+      feelsLike: inputProps.feelsLike,
+      feelsLikeTemp: inputProps.feelsLikeTemp,
+      wind: inputProps.wind,
+      windSpeed: inputProps.windSpeed,
+      windDirection: inputProps.windDirection,
+      windUnit: inputProps.windUnit,
+      language: inputProps.language,
+      precipitation: inputProps.precipitation,
+      hasDescription: !!inputProps.description,
+      descriptionLength: inputProps.description?.length || 0,
+      fullProps: JSON.stringify(inputProps, null, 2),
+    });
+
     // Compilar el bundle de Remotion
     logger.info("Compilando bundle de Remotion...");
     const bundleLocation = await bundle({
@@ -60,25 +83,36 @@ export async function renderVideo(
     });
 
     // Seleccionar la composición
+    logger.info("Seleccionando composición con inputProps...");
     const composition = await selectComposition({
       serveUrl: bundleLocation,
       id: "WeatherForecast",
-      inputProps: toWeatherForecastProps(parsedData),
+      inputProps,
     });
 
     logger.info("Composición seleccionada", {
       durationInFrames: composition.durationInFrames,
       fps: composition.fps,
+      compositionId: composition.id,
     });
 
+    // Verificar que la composición tenga los props correctos
+    if (composition.props) {
+      logger.debug("Props de la composición seleccionada", {
+        compositionCity: (composition.props as any).city,
+        compositionCondition: (composition.props as any).condition,
+        compositionTemperatureC: (composition.props as any).temperatureC,
+      });
+    }
+
     // Renderizar el vídeo
-    logger.info("Renderizando vídeo...");
+    logger.info("Renderizando vídeo con inputProps...");
     await renderMedia({
       composition,
       serveUrl: bundleLocation,
       codec: "h264",
       outputLocation: outputPath,
-      inputProps: toWeatherForecastProps(parsedData),
+      inputProps,
       fps,
       width,
       height,

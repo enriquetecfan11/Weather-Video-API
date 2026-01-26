@@ -8,6 +8,13 @@ import logger from "../utils/logger";
 let groqClient: Groq | null = null;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
+// Log para debug: verificar si la variable de entorno se está cargando
+logger.debug("Verificando GROQ_API_KEY", {
+  hasApiKey: !!GROQ_API_KEY,
+  apiKeyLength: GROQ_API_KEY?.length || 0,
+  apiKeyPrefix: GROQ_API_KEY?.substring(0, 10) || "no key",
+});
+
 if (GROQ_API_KEY) {
   try {
     groqClient = new Groq({
@@ -668,16 +675,49 @@ export async function parseWeatherText(
 ): Promise<ParsedWeatherData> {
   logger.info("Iniciando parseo de texto meteorológico", {
     textLength: text.length,
+    textPreview: text.substring(0, 100),
   });
 
   // Intentar primero con Groq
   const groqResult = await parseWithGroq(text);
   if (groqResult) {
-    logger.info("Parseo exitoso con Groq");
+    logger.info("Parseo exitoso con Groq", {
+      city: groqResult.city,
+      country: groqResult.country,
+      condition: groqResult.condition,
+      temperatureC: groqResult.temperatureC,
+      hasPrecipitation: !!groqResult.precipitation,
+      precipitationType: groqResult.precipitation?.type,
+    });
     return groqResult;
   }
 
   // Si Groq falla, usar parser determinista
   logger.info("Usando parser determinista como fallback");
-  return parseWithDeterministic(text);
+  const deterministicResult = parseWithDeterministic(text);
+  
+  // Log detallado del resultado del parser determinista
+  logger.info("Resultado del parser determinista", {
+    city: deterministicResult.city,
+    country: deterministicResult.country,
+    condition: deterministicResult.condition,
+    temperatureC: deterministicResult.temperatureC,
+    temperatureRange: deterministicResult.temperatureRange,
+    temperatureUnit: deterministicResult.temperatureUnit,
+    feelsLike: deterministicResult.feelsLike,
+    feelsLikeTemp: deterministicResult.feelsLikeTemp,
+    wind: deterministicResult.wind,
+    windSpeed: deterministicResult.windSpeed,
+    windDirection: deterministicResult.windDirection,
+    windUnit: deterministicResult.windUnit,
+    hasPrecipitation: !!deterministicResult.precipitation,
+    precipitationType: deterministicResult.precipitation?.type,
+    precipitationIntensity: deterministicResult.precipitation?.intensity,
+    precipitationProbability: deterministicResult.precipitation?.probability,
+    hasDescription: !!deterministicResult.description,
+    descriptionLength: deterministicResult.description?.length || 0,
+    language: deterministicResult.language,
+  });
+  
+  return deterministicResult;
 }
