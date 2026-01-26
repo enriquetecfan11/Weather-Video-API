@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weather-video-api
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    volumes:
+      # Volúmenes para archivos temporales y salida
+      - ./temp:/app/temp
+      - ./out:/app/out
+    restart: unless-stopped
+    networks:
+      - weather-video-network
+
+networks:
+  weather-video-network:
+    driver: bridge
