@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:18-alpine AS builder
+FROM node:22.13-alpine AS builder
 
 # Instalar dependencias del sistema necesarias para build
 RUN apk add --no-cache \
@@ -10,16 +10,16 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copiar archivos de dependencias
-COPY package.json package-lock.json ./
+COPY package.json ./
 
 # Instalar todas las dependencias (incluyendo devDependencies para build)
-RUN npm ci
+RUN npm install
 
 # Copiar código fuente
 COPY . .
 
 # Stage 2: Runtime
-FROM node:18-alpine AS runtime
+FROM node:22.13-alpine AS runtime
 
 # Instalar Chrome/Chromium y dependencias necesarias para Remotion
 RUN apk add --no-cache \
