@@ -9,7 +9,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="WeatherForecast"
         component={WeatherForecast}
-        durationInFrames={510} // 17 segundos (OUTRO_START + OUTRO_DURATION) * 30 fps
+        durationInFrames={660} // 22 segundos (OUTRO_START + OUTRO_DURATION) * 30 fps
         fps={30}
         width={1080}
         height={1920}

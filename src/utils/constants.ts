@@ -10,7 +10,7 @@ export const SPRING_CONFIG = {
 
 /**
  * Offsets de tiempo para animaciones (en segundos)
- * Estructura narrativa: Bloque 1 (0-4s) → Bloque 2 (4-9s) → Bloque 3 (9-13s) → Outro (13-15s)
+ * Estructura narrativa: Bloque 1 (0-4s) → Bloque 2 (3.5-9s) → Bloque 3 (9-13s) → Bloque 4 (12-18s) → Outro (18-22s)
  */
 export const TIMING = {
   // Bloque 1: Impacto inicial (temperatura + ciudad)
@@ -36,12 +36,12 @@ export const TIMING = {
   
   // Bloque 4: Descripción completa (opcional, después de fenómenos o bloque 2)
   BLOCK_4_START: 12,
-  BLOCK_4_DURATION: 3,
+  BLOCK_4_DURATION: 6,
   BLOCK_4_INTRO_DURATION: 0.6,
 
   // Outro/Cierre
-  OUTRO_START: 15,
-  OUTRO_DURATION: 2,
+  OUTRO_START: 18,
+  OUTRO_DURATION: 4,
 
   // Nubes
   CLOUD_DRIFT_DURATION: 15,

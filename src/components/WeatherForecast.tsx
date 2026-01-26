@@ -164,7 +164,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
     clamp
   );
 
-  // Animaciones del Bloque 4 (12-15s): Descripción completa (condicional)
+  // Animaciones del Bloque 4 (12-18s): Descripción completa (condicional)
   const block4Start = TIMING.BLOCK_4_START * fps;
   const block4End = (TIMING.BLOCK_4_START + TIMING.BLOCK_4_DURATION) * fps;
 
@@ -475,7 +475,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
           </Sequence>
         )}
 
-        {/* Outro: Fade out final (15-17s) */}
+        {/* Outro: Fade out final (18-22s) */}
         {frame >= outroStart && (
           <div
             style={{
