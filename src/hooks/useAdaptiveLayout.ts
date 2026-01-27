@@ -61,26 +61,66 @@ export function useAdaptiveLayout(props: WeatherForecastProps) {
 
     // === BLOQUE 2: Tarjetas ===
     // Preparar datos de tarjetas para cálculo
-    const cards = [
-      {
+    const cards: Array<{ label: string; value: string }> = [];
+
+    // Si NO hay temperatureRange, añadir condición como primera tarjeta
+    if (!props.temperatureRange) {
+      cards.push({
         label: t("condition", language),
         value: condition,
-      },
-      {
+      });
+    } else {
+      // Si hay temperatureRange, añadir tarjetas de temperatura máxima y mínima
+      const min = props.temperatureRange.min;
+      const max = props.temperatureRange.max;
+      const minDisplay = temperatureUnit === "F" ? (min * 9) / 5 + 32 : min;
+      const maxDisplay = temperatureUnit === "F" ? (max * 9) / 5 + 32 : max;
+      
+      // Tarjeta de temperatura mínima (primera)
+      cards.push({
+        label: t("tempMin", language),
+        value: `${Math.round(minDisplay)}°${temperatureUnit}`,
+      });
+      
+      // Tarjeta de temperatura máxima (segunda)
+      cards.push({
+        label: t("tempMax", language),
+        value: `${Math.round(maxDisplay)}°${temperatureUnit}`,
+      });
+    }
+
+    if (displayFeelsLike !== undefined || feelsLike) {
+      cards.push({
         label: t("feelsLike", language),
         value:
           displayFeelsLike !== undefined
             ? `${Math.round(displayFeelsLike)}°${temperatureUnit}`
-            : feelsLike || "-",
-      },
-      {
-        label: t("wind", language),
-        value:
-          windSpeed !== undefined
-            ? `${windSpeed} ${windUnit}${windDirection ? ` ${windDirection}` : ""}`
-            : wind || "-",
-      },
-    ];
+            : feelsLike ?? "",
+      });
+    }
+
+    if (windSpeed !== undefined || wind || windDirection) {
+      let windValue = "";
+      if (windSpeed !== undefined) {
+        windValue = `${windSpeed} ${windUnit}`;
+        if (windDirection) {
+          windValue += ` ${windDirection}`;
+        }
+      } else if (wind && windDirection) {
+        windValue = `${wind} ${windDirection}`;
+      } else if (wind) {
+        windValue = wind;
+      } else if (windDirection) {
+        windValue = windDirection;
+      }
+      
+      if (windValue) {
+        cards.push({
+          label: t("wind", language),
+          value: windValue,
+        });
+      }
+    }
 
     const cardLayout = calculateCardLayout(
       cards,
@@ -159,6 +199,7 @@ export function useAdaptiveLayout(props: WeatherForecastProps) {
     props.windUnit,
     props.language,
     props.temperatureUnit,
+    props.temperatureRange,
     props.precipitation,
     props.description,
     width,

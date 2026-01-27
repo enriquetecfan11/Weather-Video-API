@@ -24,6 +24,7 @@ export type WeatherForecastProps = {
   country?: string;
   condition: string;
   temperatureC: number;
+  temperatureRange?: { min: number; max: number };
   feelsLike?: string;
   feelsLikeTemp?: number;
   wind?: string;
@@ -45,6 +46,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
   country,
   condition,
   temperatureC,
+  temperatureRange,
   feelsLike,
   feelsLikeTemp,
   wind,
@@ -65,6 +67,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
     country,
     condition,
     temperatureC,
+    temperatureRange,
     feelsLike,
     feelsLikeTemp,
     wind,
@@ -110,9 +113,17 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
 
   const block1Opacity = frame < block1FadeOutStart ? block1IntroOpacity : block1FadeOut;
 
-  // Animaciones del Bloque 2 (3.5-9s): Condición, Sensación, Viento
+  // Calcular duración dinámica del bloque 2 según número de tarjetas
+  const numberOfCards = adaptiveLayout.cards.processedCards.length;
+  // Duración base: 2s por tarjeta, mínimo 3s, máximo 5.5s
+  const block2Duration = Math.max(
+    3,
+    Math.min(5.5, 2 + (numberOfCards - 1) * 1.5)
+  );
+  
+  // Animaciones del Bloque 2: Condición, Sensación, Viento (duración dinámica)
   const block2Start = TIMING.BLOCK_2_START * fps;
-  const block2End = (TIMING.BLOCK_2_START + TIMING.BLOCK_2_DURATION) * fps;
+  const block2End = (TIMING.BLOCK_2_START + block2Duration) * fps;
   const block2FadeOutStart = block2End - TIMING.BLOCK_2_FADEOUT * fps;
 
   const block2IntroOpacity = interpolate(
@@ -133,9 +144,10 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
 
   // Animación escalonada de las tarjetas del bloque 2 (ahora usando componentes)
 
-  // Animaciones del Bloque 3 (9-13s): Fenómenos (condicional)
-  const block3Start = TIMING.BLOCK_3_START * fps;
-  const block3End = (TIMING.BLOCK_3_START + TIMING.BLOCK_3_DURATION) * fps;
+  // Calcular inicio dinámico del bloque 3: empieza 0.5s después del final del bloque 2
+  const block3StartBase = block2End / fps + 0.5;
+  const block3Start = Math.min(block3StartBase, TIMING.BLOCK_3_START) * fps;
+  const block3End = (block3Start / fps + TIMING.BLOCK_3_DURATION) * fps;
   const block3FadeOutStart = block3End - 0.5 * fps; // Fade out 0.5s antes del final
 
   const block3IntroOpacity = interpolate(
@@ -154,9 +166,12 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
 
   const block3Opacity = frame < block3FadeOutStart ? block3IntroOpacity : block3FadeOut;
 
-  // Animaciones del Bloque 4 (12-18s): Descripción completa (condicional)
-  const block4Start = TIMING.BLOCK_4_START * fps;
-  const block4End = (TIMING.BLOCK_4_START + TIMING.BLOCK_4_DURATION) * fps;
+  // Calcular inicio dinámico del bloque 4: empieza 0.5s después del final del bloque 3 (o tiempo base si no hay bloque 3)
+  const block4StartBase = precipitation?.type 
+    ? (block3End / fps + 0.5)
+    : (block2End / fps + 0.5);
+  const block4Start = Math.min(block4StartBase, TIMING.BLOCK_4_START) * fps;
+  const block4End = (block4Start / fps + TIMING.BLOCK_4_DURATION) * fps;
 
   const block4Opacity = interpolate(
     frame,
@@ -165,21 +180,32 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
     clamp
   );
 
-  // Outro (15-17s)
-  const outroStart = TIMING.OUTRO_START * fps;
+  // Calcular duración total dinámica: último bloque + outro
+  const lastBlockEnd = description 
+    ? block4End 
+    : (precipitation?.type ? block3End : block2End);
+  const outroStartTime = (lastBlockEnd / fps) + 0.2; // 0.2s después del último bloque (reducido)
+  const outroStart = outroStartTime * fps;
+  const outroEnd = (outroStartTime + TIMING.OUTRO_DURATION) * fps;
+  
+  // Duración total del video: outroEnd + pequeño margen
+  const totalVideoDuration = outroEnd / fps;
+  
   const outroOpacity = interpolate(
     frame,
-    [outroStart, outroStart + TIMING.OUTRO_DURATION * fps],
+    [outroStart, outroEnd],
     [1, 0],
     clamp
   );
 
   // Usar tarjetas procesadas del layout adaptativo (con valores truncados si es necesario)
-  const cards = adaptiveLayout.cards.processedCards.map((card, index) => ({
+  const conditionLabel = t("condition", language);
+  const cards = adaptiveLayout.cards.processedCards.map((card) => ({
     ...card,
-    icon: index === 0 ? (
-      <WeatherIcon condition={condition} size={MOBILE_DESIGN.CARD_ICON_SIZE} />
-    ) : undefined,
+    icon:
+      card.label === conditionLabel ? (
+        <WeatherIcon condition={condition} size={MOBILE_DESIGN.CARD_ICON_SIZE} />
+      ) : undefined,
   }));
 
   return (
@@ -333,7 +359,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
           </div>
         </Sequence>
 
-        {/* BLOQUE 2: Contexto humano - Condición, Sensación, Viento (3.5-9s) */}
+        {/* BLOQUE 2: Contexto humano - Condición, Sensación, Viento (duración dinámica) */}
         <Sequence from={block2Start} durationInFrames={block2End - block2Start}>
           <div
             style={{
@@ -343,10 +369,12 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
               gap: adaptiveLayout.cards.cardGap,
               width: "100%",
               maxWidth: MOBILE_DESIGN.MAX_CONTENT_WIDTH,
-              marginTop: MOBILE_DESIGN.SECTION_GAP,
+              marginTop: numberOfCards < 3 ? "auto" : MOBILE_DESIGN.SECTION_GAP,
+              marginBottom: numberOfCards < 3 ? "auto" : 0,
               marginLeft: "auto",
               marginRight: "auto",
               alignSelf: "center",
+              justifyContent: numberOfCards < 3 ? "center" : "flex-start",
             }}
           >
             {cards.map((card, index) => {
@@ -356,18 +384,18 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
                   key={card.label}
                   delay={cardDelay}
                   duration={TIMING.BLOCK_2_CARD_ANIMATION_DURATION * fps}
-                  fromScale={0.9}
+                  fromScale={0.7}
                   toScale={1}
                   springConfig="SMOOTH"
-                  withFade={false}
+                  withFade={true}
                 >
                   <SlideIn
                     direction="up"
-                    distance={50}
+                    distance={80}
                     delay={cardDelay}
                     duration={TIMING.BLOCK_2_CARD_ANIMATION_DURATION * fps}
                     springConfig="SMOOTH"
-                    withFade={false}
+                    withFade={true}
                   >
                     <div
                       style={{
@@ -442,7 +470,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
               <PrecipitationEffects
                 type={precipitation.type}
                 intensity={(precipitation.intensity?.toLowerCase() as "weak" | "moderate" | "strong") || "moderate"}
-                opacity={0.4}
+                opacity={0.6} // Opacidad aumentada para más visibilidad
               />
             </Sequence>
 

@@ -6,6 +6,9 @@ export type Language = "es" | "en" | "fr" | "de";
 
 type Translations = {
   condition: string;
+  tempMax: string;
+  tempMin: string;
+  temperatureRange: string;
   feelsLike: string;
   wind: string;
   windSpeed: string;
@@ -23,6 +26,9 @@ type Translations = {
 const translations: Record<Language, Translations> = {
   es: {
     condition: "Condición",
+    tempMax: "Máxima",
+    tempMin: "Mínima",
+    temperatureRange: "Rango",
     feelsLike: "Sensación",
     wind: "Viento",
     windSpeed: "Velocidad",
@@ -38,6 +44,9 @@ const translations: Record<Language, Translations> = {
   },
   en: {
     condition: "Condition",
+    tempMax: "Max",
+    tempMin: "Min",
+    temperatureRange: "Range",
     feelsLike: "Feels like",
     wind: "Wind",
     windSpeed: "Speed",
@@ -53,6 +62,9 @@ const translations: Record<Language, Translations> = {
   },
   fr: {
     condition: "Condition",
+    tempMax: "Maximale",
+    tempMin: "Minimale",
+    temperatureRange: "Plage",
     feelsLike: "Ressenti",
     wind: "Vent",
     windSpeed: "Vitesse",
@@ -68,6 +80,9 @@ const translations: Record<Language, Translations> = {
   },
   de: {
     condition: "Bedingung",
+    tempMax: "Maximum",
+    tempMin: "Minimum",
+    temperatureRange: "Bereich",
     feelsLike: "Gefühlt",
     wind: "Wind",
     windSpeed: "Geschwindigkeit",

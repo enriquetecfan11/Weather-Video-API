@@ -97,6 +97,8 @@ export async function renderVideo(
       country: inputProps.country,
       condition: inputProps.condition,
       temperatureC: inputProps.temperatureC,
+      temperatureRange: inputProps.temperatureRange,
+      hasTemperatureRange: !!inputProps.temperatureRange,
       temperatureUnit: inputProps.temperatureUnit,
       feelsLike: inputProps.feelsLike,
       feelsLikeTemp: inputProps.feelsLikeTemp,

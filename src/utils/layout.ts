@@ -203,6 +203,16 @@ export function calculateCardLayout(
   const basePadding = MOBILE_DESIGN.CARD_PADDING;
   const cardContentWidth = contentWidth - iconWidth - basePadding * 3; // padding izquierdo, derecho, gap con icono
 
+  // Si no hay tarjetas, retornar valores por defecto
+  if (cards.length === 0) {
+    return {
+      cardValueFontSize: MOBILE_DESIGN.CARD_VALUE_FONT_SIZE,
+      cardTitleFontSize: MOBILE_DESIGN.CARD_VALUE_FONT_SIZE * ADAPTIVE_LAYOUT.CARD_TITLE_TO_VALUE_RATIO,
+      cardGap: MOBILE_DESIGN.CARD_GAP,
+      cardPadding: MOBILE_DESIGN.CARD_PADDING,
+    };
+  }
+
   // Encontrar el texto más largo en los valores
   const longestValue = cards.reduce((longest, card) => {
     return card.value.length > longest.length ? card.value : longest;

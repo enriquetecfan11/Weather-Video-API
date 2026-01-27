@@ -118,6 +118,9 @@ export function toWeatherForecastProps(
   if (data.country) {
     props.country = data.country;
   }
+  if (data.temperatureRange) {
+    props.temperatureRange = data.temperatureRange;
+  }
   if (data.feelsLike) {
     props.feelsLike = data.feelsLike;
   }
@@ -142,9 +145,11 @@ export function toWeatherForecastProps(
     originalCity: data.city,
     originalCondition: data.condition,
     originalTemperatureC: data.temperatureC,
+    originalTemperatureRange: data.temperatureRange,
     finalCity: props.city,
     finalCondition: props.condition,
     finalTemperatureC: props.temperatureC,
+    finalTemperatureRange: props.temperatureRange,
     hasPrecipitation: !!props.precipitation,
     precipitationType: props.precipitation?.type,
   });

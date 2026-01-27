@@ -12,17 +12,17 @@ export type PrecipitationEffectsProps = {
 export const PrecipitationEffects: React.FC<PrecipitationEffectsProps> = ({
   type,
   intensity = "moderate",
-  opacity = 0.3,
+  opacity = 0.5, // Opacidad base aumentada
 }) => {
   const frame = useCurrentFrame();
 
   if (!type) return null;
 
-  // Número de partículas según intensidad
-  const particleCount = intensity === "weak" ? 15 : intensity === "moderate" ? 25 : 35;
+  // Número de partículas según intensidad (aumentado para más visibilidad)
+  const particleCount = intensity === "weak" ? 30 : intensity === "moderate" ? 50 : 70;
 
-  // Velocidad según intensidad
-  const speed = intensity === "weak" ? 0.5 : intensity === "moderate" ? 0.8 : 1.2;
+  // Velocidad según intensidad (aumentada)
+  const speed = intensity === "weak" ? 0.8 : intensity === "moderate" ? 1.2 : 1.8;
 
   if (type === "rain") {
     // Gotas de lluvia
@@ -45,11 +45,11 @@ export const PrecipitationEffects: React.FC<PrecipitationEffectsProps> = ({
       const dropOpacity = interpolate(
         frame * speed + delay * 30,
         [0, 20, 100, 120],
-        [0, opacity, opacity, 0],
+        [0, opacity * 1.5, opacity * 1.5, 0], // Aumentar opacidad
         clamp
       );
 
-      const length = intensity === "weak" ? 8 : intensity === "moderate" ? 12 : 16;
+      const length = intensity === "weak" ? 12 : intensity === "moderate" ? 18 : 24; // Gotas más largas
 
       return {
         x,

@@ -219,7 +219,40 @@ function extractTemperature(
   const hasFahrenheit = /°f|fahrenheit|f\b/i.test(text);
   const temperatureUnit: "C" | "F" = hasFahrenheit ? "F" : "C";
 
-  // Patrón 1: "temperaturas entre X y Y °C"
+  // Patrón 1a: "temperaturas alrededor de X °C por la mañana y subiendo hasta cerca de Y °C por la tarde"
+  // También captura variaciones como "temperaturas de X°C... hasta Y°C"
+  const morningAfternoonPattern =
+    /temperaturas?\s+(?:alrededor\s+de|de|entre)?\s*(-?\d+)\s*°?[cf]?\s*(?:por\s+la\s+mañana|en\s+la\s+mañana|por\s+mañana).*?(?:subiendo\s+hasta|hasta|y|subiendo)\s+(?:cerca\s+de|alrededor\s+de|hasta)?\s*(-?\d+)\s*°?[cf]?\s*(?:por\s+la\s+tarde|en\s+la\s+tarde|por\s+tarde)/i;
+  const morningAfternoonMatch = text.match(morningAfternoonPattern);
+  if (morningAfternoonMatch) {
+    const min = parseInt(morningAfternoonMatch[1], 10);
+    const max = parseInt(morningAfternoonMatch[2], 10);
+    const avg = (min + max) / 2;
+
+    // Convertir a Celsius si es necesario
+    const minC = temperatureUnit === "F" ? ((min - 32) * 5) / 9 : min;
+    const maxC = temperatureUnit === "F" ? ((max - 32) * 5) / 9 : max;
+    const avgC = (minC + maxC) / 2;
+
+    logger.debug("Rango de temperaturas detectado (mañana/tarde)", {
+      min,
+      max,
+      minC,
+      maxC,
+      avgC,
+    });
+
+    return {
+      temperatureC: Math.round(avgC * 10) / 10,
+      temperatureRange: {
+        min: Math.round(minC * 10) / 10,
+        max: Math.round(maxC * 10) / 10,
+      },
+      temperatureUnit,
+    };
+  }
+
+  // Patrón 1b: "temperaturas entre X y Y °C"
   const rangePattern =
     /temperaturas?\s+(?:entre|de)\s+(-?\d+)\s*°?[cf]?\s*(?:y|a)\s+(-?\d+)\s*°?[cf]?/i;
   const rangeMatch = text.match(rangePattern);
@@ -232,6 +265,14 @@ function extractTemperature(
     const minC = temperatureUnit === "F" ? ((min - 32) * 5) / 9 : min;
     const maxC = temperatureUnit === "F" ? ((max - 32) * 5) / 9 : max;
     const avgC = (minC + maxC) / 2;
+
+    logger.debug("Rango de temperaturas detectado (entre X y Y)", {
+      min,
+      max,
+      minC,
+      maxC,
+      avgC,
+    });
 
     return {
       temperatureC: Math.round(avgC * 10) / 10,
@@ -292,24 +333,50 @@ function extractWind(text: string): {
     result.windUnit = windUnit;
   }
 
-  // Extraer intensidad
-  const intensityPattern = /viento\s+(\w+)/i;
-  const intensityMatch = text.match(intensityPattern);
-  if (intensityMatch) {
-    const intensity = normalizeText(intensityMatch[1]);
-    const normalizedIntensity = INTENSITY_MAP[intensity] || intensity;
-    result.wind = `Viento ${normalizedIntensity}`;
-  } else if (normalized.includes("viento")) {
-    // Si menciona viento pero no especifica intensidad
-    result.wind = "Viento";
-  }
-
-  // Extraer dirección
+  // Extraer dirección primero (puede estar antes de la intensidad)
   for (const direction of WIND_DIRECTIONS) {
     if (normalized.includes(direction)) {
       result.windDirection =
         direction.charAt(0).toUpperCase() + direction.slice(1);
       break;
+    }
+  }
+
+  // Extraer intensidad - patrón 1: "viento del [dirección] [intensidad]"
+  const windWithDirectionPattern = /viento\s+(?:del|de)\s+(\w+)\s+(\w+)/i;
+  const windWithDirectionMatch = text.match(windWithDirectionPattern);
+  if (windWithDirectionMatch) {
+    const direction = normalizeText(windWithDirectionMatch[1]);
+    const intensity = normalizeText(windWithDirectionMatch[2]);
+    
+    // Verificar si la primera palabra es una dirección conocida
+    const isDirection = WIND_DIRECTIONS.some(d => normalized.includes(d));
+    if (isDirection) {
+      const normalizedIntensity = INTENSITY_MAP[intensity] || intensity;
+      result.wind = `Viento ${normalizedIntensity}`;
+    } else {
+      // Si no es dirección, la primera palabra es la intensidad
+      const normalizedIntensity = INTENSITY_MAP[direction] || direction;
+      result.wind = `Viento ${normalizedIntensity}`;
+    }
+  } else {
+    // Patrón 2: "viento [intensidad]" (sin dirección explícita)
+    const intensityPattern = /viento\s+(\w+)/i;
+    const intensityMatch = text.match(intensityPattern);
+    if (intensityMatch) {
+      const intensity = normalizeText(intensityMatch[1]);
+      // Verificar que no sea una dirección
+      const isDirection = WIND_DIRECTIONS.some(d => d === intensity);
+      if (!isDirection) {
+        const normalizedIntensity = INTENSITY_MAP[intensity] || intensity;
+        result.wind = `Viento ${normalizedIntensity}`;
+      } else {
+        // Si es dirección, solo guardar la dirección
+        result.wind = "Viento";
+      }
+    } else if (normalized.includes("viento")) {
+      // Si menciona viento pero no especifica intensidad
+      result.wind = "Viento";
     }
   }
 
@@ -531,7 +598,7 @@ function validateAndNormalizeGroqResponse(
             probability: data.precipitation.probability || undefined,
           }
         : undefined,
-      description: data.description || text,
+      description: data.description || "",
       language: data.language,
     };
 
@@ -554,40 +621,12 @@ async function parseWithGroq(text: string): Promise<ParsedWeatherData | null> {
   const startTime = Date.now();
 
   try {
-    const prompt = `Analiza el siguiente texto meteorológico en español y extrae la información en formato JSON.
+    const prompt = `Extrae datos meteorológicos del texto en JSON. Texto: "${text}"
 
-Texto: "${text}"
+JSON requerido:
+{"city":str|null,"country":str|null,"condition":"Soleado|Nublado|Muy nublado|Lluvia|Nieve|Tormenta","temperatureC":num,"temperatureRange":{"min":num,"max":num}|null,"temperatureUnit":"C|F","feelsLike":str|null,"feelsLikeTemp":num|null,"wind":str|null,"windSpeed":num|null,"windDirection":str|null,"windUnit":"km/h|mph"|null,"precipitation":{"type":"rain|snow|storm"|null,"intensity":"débil|moderado|fuerte"|null,"probability":num|null}|null,"description":str}
 
-Extrae y devuelve SOLO un objeto JSON válido con esta estructura exacta:
-{
-  "city": "nombre de la ciudad o null",
-  "country": "nombre del país o null",
-  "condition": "Condición principal (Soleado, Nublado, Muy nublado, Lluvia, Nieve, Tormenta)",
-  "temperatureC": número (temperatura en Celsius, promedio si hay rango),
-  "temperatureRange": {"min": número, "max": número} o null,
-  "temperatureUnit": "C" o "F",
-  "feelsLike": "descripción de sensación térmica o null",
-  "feelsLikeTemp": número o null,
-  "wind": "descripción del viento o null",
-  "windSpeed": número o null,
-  "windDirection": "dirección del viento o null",
-  "windUnit": "km/h" o "mph" o null,
-  "precipitation": {
-    "type": "rain" o "snow" o "storm" o null,
-    "intensity": "débil" o "moderado" o "fuerte" o null,
-    "probability": número (0-100) o null
-  } o null,
-  "description": "el texto original completo"
-}
-
-IMPORTANTE:
-- Si hay un rango de temperaturas (ej: "entre 1°C y 8°C"), calcula el promedio para temperatureC (4.5 en este caso)
-- Si dice "alta probabilidad", usa 75% como probabilidad
-- Si dice "baja probabilidad", usa 25% como probabilidad
-- Si dice "probabilidad media", usa 50% como probabilidad
-- Extrae TODA la información disponible, no omitas campos
-- La condición principal debe ser la más relevante (ej: si dice "muy nublado, con chubascos", la condición es "Muy nublado", no "Lluvia")
-- Devuelve SOLO el JSON, sin texto adicional antes o después`;
+Reglas: Si hay rango temp (mañana/tarde o "entre X y Y"), añade temperatureRange. Probabilidades: "alta"=75%, "baja"=25%, "media"=50%. Condición principal (ej: "muy nublado, chubascos"→"Muy nublado"). Solo JSON, sin texto extra.`;
 
     logger.info("Iniciando parseo con Groq", {
       textLength: text.length,
@@ -603,9 +642,8 @@ IMPORTANTE:
       ],
       model: "qwen/qwen3-32b",
       temperature: 0.3,
-      max_completion_tokens: 1024,
+      max_tokens: 1024,
       top_p: 0.95,
-      stream: false,
     });
 
     const responseContent =
