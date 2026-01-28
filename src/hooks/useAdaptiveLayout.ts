@@ -67,7 +67,7 @@ export function useAdaptiveLayout(props: WeatherForecastProps) {
     if (!props.temperatureRange) {
       cards.push({
         label: t("condition", language),
-        value: condition,
+        value: condition ?? "",
       });
     } else {
       // Si hay temperatureRange, añadir tarjetas de temperatura máxima y mínima

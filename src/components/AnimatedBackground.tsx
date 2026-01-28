@@ -10,7 +10,7 @@ export type AnimatedBackgroundProps = {
  * Obtiene los colores del fondo según la condición meteorológica
  */
 const getBackgroundColors = (condition?: string): { from: string; to: string; accent?: string } => {
-  if (!condition) {
+  if (!condition || typeof condition !== 'string') {
     return { from: "#000021", to: "#010024" }; // Default oscuro
   }
 

@@ -123,7 +123,7 @@ export function getIntensityName(
   intensity: string | undefined,
   lang: Language = "es"
 ): string {
-  if (!intensity) return "";
+  if (!intensity || typeof intensity !== 'string') return "";
   const intensityKey = intensity.toLowerCase() as "weak" | "moderate" | "strong";
   return t(intensityKey, lang);
 }

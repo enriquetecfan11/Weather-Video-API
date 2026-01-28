@@ -204,7 +204,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
     ...card,
     icon:
       card.label === conditionLabel ? (
-        <WeatherIcon condition={condition} size={MOBILE_DESIGN.CARD_ICON_SIZE} />
+        <WeatherIcon condition={condition || ""} size={MOBILE_DESIGN.CARD_ICON_SIZE} />
       ) : undefined,
   }));
 
@@ -218,7 +218,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
       }}
     >
       {/* Fondo animado que cambia según la condición meteorológica */}
-      <AnimatedBackground condition={condition} />
+      <AnimatedBackground condition={condition || ""} />
 
       {/* Capas de fondo con gradientes radiales animados (sobre el fondo animado) */}
       <div
@@ -469,7 +469,11 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
             <Sequence from={block3Start} durationInFrames={block3End - block3Start}>
               <PrecipitationEffects
                 type={precipitation.type}
-                intensity={(precipitation.intensity?.toLowerCase() as "weak" | "moderate" | "strong") || "moderate"}
+                intensity={
+                  (precipitation.intensity && typeof precipitation.intensity === 'string'
+                    ? (precipitation.intensity.toLowerCase() as "weak" | "moderate" | "strong")
+                    : "moderate")
+                }
                 opacity={0.6} // Opacidad aumentada para más visibilidad
               />
             </Sequence>

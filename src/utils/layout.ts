@@ -213,10 +213,13 @@ export function calculateCardLayout(
     };
   }
 
-  // Encontrar el texto más largo en los valores
-  const longestValue = cards.reduce((longest, card) => {
-    return card.value.length > longest.length ? card.value : longest;
-  }, "");
+  // Filtrar cards con value válido y encontrar el texto más largo
+  const validCards = cards.filter(card => card.value != null && typeof card.value === 'string');
+  const longestValue = validCards.length > 0
+    ? validCards.reduce((longest, card) => {
+        return card.value.length > longest.length ? card.value : longest;
+      }, "")
+    : "";
 
   // Calcular tamaño de fuente para valores
   const cardValueFontSize = Math.max(
