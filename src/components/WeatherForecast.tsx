@@ -59,7 +59,7 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
   description,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
 
   // Obtener layout adaptativo calculado
   const adaptiveLayout = useAdaptiveLayout({
@@ -166,37 +166,36 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
 
   const block3Opacity = frame < block3FadeOutStart ? block3IntroOpacity : block3FadeOut;
 
-  // Calcular inicio dinámico del bloque 4: empieza 0.5s después del final del bloque 3 (o tiempo base si no hay bloque 3)
+  // Fade out final: ocupa los últimos FADE_OUT_DURATION segundos del video
+  const fadeOutStart = durationInFrames - (TIMING.FADE_OUT_DURATION * fps);
+  const fadeOutEnd = durationInFrames;
+  
+  // Calcular inicio dinámico del bloque 4: empieza 0.5s después del final del bloque 3 (o bloque 2)
   const block4StartBase = precipitation?.type 
     ? (block3End / fps + 0.5)
     : (block2End / fps + 0.5);
   const block4Start = Math.min(block4StartBase, TIMING.BLOCK_4_START) * fps;
-  const block4End = (block4Start / fps + TIMING.BLOCK_4_DURATION) * fps;
+  
+  // El bloque 4 termina cuando empieza el fade out
+  const block4End = fadeOutStart;
 
-  const block4Opacity = interpolate(
+  // Fade in del bloque 4
+  const block4IntroOpacity = interpolate(
     frame,
     [block4Start, block4Start + TIMING.BLOCK_4_INTRO_DURATION * fps],
     [0, 1],
     clamp
   );
-
-  // Calcular duración total dinámica: último bloque + outro
-  const lastBlockEnd = description 
-    ? block4End 
-    : (precipitation?.type ? block3End : block2End);
-  const outroStartTime = (lastBlockEnd / fps) + 0.2; // 0.2s después del último bloque (reducido)
-  const outroStart = outroStartTime * fps;
-  const outroEnd = (outroStartTime + TIMING.OUTRO_DURATION) * fps;
   
-  // Duración total del video: outroEnd + pequeño margen
-  const totalVideoDuration = outroEnd / fps;
-  
-  const outroOpacity = interpolate(
+  // Fade out del bloque 4 al final del video
+  const block4FadeOut = interpolate(
     frame,
-    [outroStart, outroEnd],
+    [fadeOutStart, fadeOutEnd],
     [1, 0],
     clamp
   );
+  
+  const block4Opacity = frame < fadeOutStart ? block4IntroOpacity : block4FadeOut;
 
   // Usar tarjetas procesadas del layout adaptativo (con valores truncados si es necesario)
   const conditionLabel = t("condition", language);
@@ -536,9 +535,9 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
           </>
         )}
 
-        {/* BLOQUE 4: Descripción completa (12-15s) - Centrado en pantalla */}
+        {/* BLOQUE 4: Descripción completa - Centrado en pantalla, dura hasta el outro */}
         {description && adaptiveLayout.description && (
-          <Sequence from={block4Start} durationInFrames={block4End - block4Start}>
+          <Sequence from={block4Start} durationInFrames={fadeOutEnd - block4Start}>
             <div
               style={{
                 position: "absolute",
@@ -592,18 +591,6 @@ export const WeatherForecast: React.FC<WeatherForecastProps> = ({
           </Sequence>
         )}
 
-        {/* Outro: Fade out final (18-22s) */}
-        {frame >= outroStart && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: THEME.COLORS.OUTRO_BACKGROUND,
-              opacity: 1 - outroOpacity,
-              zIndex: 100,
-            }}
-          />
-        )}
       </div>
     </AbsoluteFill>
   );

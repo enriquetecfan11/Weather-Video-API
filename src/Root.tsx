@@ -4,21 +4,19 @@ import { WeatherForecast } from "./components/WeatherForecast";
 import { TIMING } from "./utils/constants";
 
 /**
- * Calcula la duración máxima del video en frames
- * Considera: Bloque 1 (4s) + Bloque 2 (máx 5.5s) + Bloque 3 (4s opcional) + Bloque 4 (6s opcional) + Outro (4s) + margen mínimo
- * Duración máxima real: 
- * - Bloque 1: 0-4s
- * - Bloque 2: 3.5-9s (5.5s)
- * - Bloque 3: 9-13s (4s, opcional)
- * - Bloque 4: 13.5-19.5s (6s, opcional)
- * - Outro: 19.7-23.7s (4s, empieza 0.2s después del último bloque)
- * Total máximo: ~24s = 720 frames
+ * Duración del video en segundos
+ * El bloque 4 se extiende hasta el fade out final
  * 
- * Nota: El outro se calcula dinámicamente dentro del componente, pero esta es la duración máxima posible
+ * Estructura:
+ * - Bloque 1: 0-4s (temperatura + ciudad)
+ * - Bloque 2: 3.5-9s (condición, sensación, viento)
+ * - Bloque 3: 9-13s (fenómenos, opcional)
+ * - Bloque 4: después del último bloque hasta fade out
+ * - Fade out: últimos 1.5 segundos
  */
-const MAX_DURATION_SECONDS = 4 + 5.5 + 4 + 6 + 4 + 0.2; // 23.7 segundos
+export const VIDEO_DURATION_SECONDS = 17; // Duración total del video
 const FPS = 30;
-const MAX_DURATION_FRAMES = Math.ceil(MAX_DURATION_SECONDS * FPS); // 711 frames
+const MAX_DURATION_FRAMES = Math.ceil(VIDEO_DURATION_SECONDS * FPS);
 
 export const RemotionRoot: React.FC = () => {
   return (

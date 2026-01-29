@@ -34,7 +34,7 @@ export const SPRING_CONFIGS = {
 
 /**
  * Offsets de tiempo para animaciones (en segundos)
- * Estructura narrativa: Bloque 1 (0-4s) → Bloque 2 (3.5-9s) → Bloque 3 (9-13s) → Bloque 4 (12-18s) → Outro (18-22s)
+ * Estructura narrativa: Bloque 1 (0-4s) → Bloque 2 (3.5-9s) → Bloque 3 (9-13s) → Bloque 4 (hasta fade out) → Fade out (1.5s)
  */
 export const TIMING = {
   // Bloque 1: Impacto inicial (temperatura + ciudad)
@@ -63,9 +63,8 @@ export const TIMING = {
   BLOCK_4_DURATION: 6,
   BLOCK_4_INTRO_DURATION: 0.6,
 
-  // Outro/Cierre
-  OUTRO_START: 18,
-  OUTRO_DURATION: 4,
+  // Fade out final (duración del desvanecimiento al final del video)
+  FADE_OUT_DURATION: 1.5,
 
   // Nubes
   CLOUD_DRIFT_DURATION: 15,
