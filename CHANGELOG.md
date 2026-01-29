@@ -7,6 +7,15 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Cambiado
+- **Eliminación del outro como concepto separado**
+  - El bloque 4 ahora hace fade out directamente al final del video
+  - Constante `OUTRO_DURATION` renombrada a `FADE_OUT_DURATION` (1.5s)
+  - Eliminada la capa visual del outro (div oscuro superpuesto)
+  - Duración total del video reducida de 21.7s a 17s
+  - El bloque 4 se extiende dinámicamente hasta el inicio del fade out
+  - Estructura más simple: contenido → fade out → fin
+
 ### Añadido
 - **Migración a Chrome Headless Shell de Remotion**
   - Cambio de Chromium del sistema a Chrome Headless Shell (descargado automáticamente por Remotion)
@@ -75,8 +84,6 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Mejor extracción de condición meteorológica (no confunde "muy nublado" con "lluvia")
 - Mejor extracción de información de viento
 - **Duración del Bloque 4 (descripción completa) aumentada de 3 a 6 segundos** para mejorar la legibilidad
-- Duración del outro aumentada de 2 a 4 segundos
-- Duración total del video ajustada de 17 a 22 segundos
 
 ### Documentación
 - Actualizada documentación completa en `docs/`

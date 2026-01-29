@@ -124,7 +124,7 @@ WeatherForecast (Composición Principal)
     ├── Bloque 1: Temperatura + Ciudad (0-4s)
     ├── Bloque 2: Condición, Sensación, Viento (3.5-9s)
     ├── Bloque 3: Fenómenos (9-13s)
-    └── Bloque 4: Descripción completa (12-18s)
+    └── Bloque 4: Descripción completa (hasta fade out final)
 ```
 
 ### Componentes de Animación
@@ -175,13 +175,11 @@ La composición `WeatherForecast` sigue una estructura narrativa en 4 bloques:
    - Tarjeta de precipitaciones si existe
    - Scale + Slide con fade
 
-4. **Bloque 4 (12-18s)**: Descripción completa (condicional)
+4. **Bloque 4 (después del bloque 3 hasta fade out)**: Descripción completa (condicional)
    - Texto completo centrado
    - WordReveal palabra por palabra
    - Fade in suave
-
-5. **Outro (18-22s)**: Fade out final
-   - Transición suave a negro
+   - Fade out de 1.5s al final del video
 
 ### Layout Adaptativo
 

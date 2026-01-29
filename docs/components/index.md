@@ -421,8 +421,10 @@ Configuraciones de timing para bloques narrativos en `src/utils/constants.ts`:
 - **Bloque 1** (0-4s): Temperatura + Ciudad
 - **Bloque 2** (3.5-9s): Condición, Sensación, Viento
 - **Bloque 3** (9-13s): Fenómenos (precipitaciones)
-- **Bloque 4** (12-18s): Descripción completa
-- **Outro** (18-22s): Fade out final
+- **Bloque 4** (después del bloque 3 hasta fade out): Descripción completa
+- **Fade out** (últimos 1.5s): Desvanecimiento final del contenido
+
+**Nota**: El bloque 4 se extiende dinámicamente para llenar el tiempo disponible hasta el fade out final. La duración total del video es de 17 segundos.
 
 ## Guía de Uso
 
